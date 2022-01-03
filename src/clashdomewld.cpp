@@ -958,12 +958,11 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
 void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string memo)
 {
 
-    const size_t fb = memo.find(":");
-    string d1 = memo.substr(0, fb);
-    string d2 = memo.substr(fb + 1);
+    // const size_t fb = memo.find(":");
+    // string d1 = memo.substr(0, fb);
+    // string d2 = memo.substr(fb + 1);
 
-    // TODO: REMOVE THIS AFTER EARLY ACCES TEST
-    checkEarlyAccess(from, stoull(d2));
+    // checkEarlyAccess(from, stoull(d2));
 
     auto citizen_itr = citizens.find(from.value);
     check(citizen_itr == citizens.end(), "Account with name " + from.to_string() + " already has an citizen!");
