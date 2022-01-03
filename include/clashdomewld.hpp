@@ -43,6 +43,14 @@ public:
         asset credits,
         vector<string> unclaimed_actions
     );
+
+    // TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
+     ACTION addcredits2(
+        name account,
+        asset credits,
+        vector<string> unclaimed_actions
+    );
+
     ACTION repairbat(
         name account, 
         uint64_t asset_id
