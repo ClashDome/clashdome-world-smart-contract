@@ -202,11 +202,89 @@ void clashdomewld::withdraw(
                     get_self(),
                     account,
                     quantity2,
-                    "Withdraw " + to_string(quantity2.amount)
+                    "Withdraw " + account.to_string()
                 )
             ).send();
         }
     }
+}
+
+void clashdomewld::withdrawgs(
+    name account,
+    vector<asset> quantities,
+    vector<uint8_t> choices,
+    uint64_t timestamp
+) {
+
+    require_auth(account);
+
+    check(account == name("rapturechain"), "Only testing.");
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+
+    for (auto i = 0; i < quantities.size(); i++) {
+        if (quantities[i].amount > 0) {
+            uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
+            check(pos != -1, "Invalid symbol.");
+            check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
+        }
+    }
+
+    auto size = transaction_size();
+    char buf[size];
+
+    auto read = read_transaction(buf, size);
+    check(size == read, "read_transaction() has failed.");
+
+    checksum256 tx_id = eosio::sha256(buf, read);
+
+    uint64_t signing_value;
+
+    memcpy(&signing_value, tx_id.data(), sizeof(signing_value));
+
+    auto gs_itr = gigaswap.find(account.value);
+
+    vector<uint8_t> opponent_choices;
+
+    if (gs_itr == gigaswap.end()) {
+
+        gigaswap.emplace(CONTRACTN, [&](auto& swap) {
+            swap.account = account;
+            swap.timestamp = timestamp;
+            swap.choices = choices;
+            swap.quantities = quantities;
+            swap.status = PENDING;
+            swap.opponent = name("");
+            swap.opponent_choices = opponent_choices;
+            swap.winner = name("");
+        });
+
+    } else {
+        
+        check(gs_itr->status == DONE, "You already have a pending Gigaswap.");
+
+        gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
+            swap.timestamp = timestamp;
+            swap.choices = choices;
+            swap.quantities = quantities;
+            swap.status = PENDING;
+            swap.opponent = name("");
+            swap.opponent_choices = opponent_choices;
+            swap.winner = name("");
+        });
+    }
+
+    action(
+        permission_level{get_self(), name("active")},
+        name("orng.wax"),
+        name("requestrand"),
+        std::make_tuple(
+            account.value, //used as assoc id
+            signing_value,
+            get_self()
+        )
+    ).send();
 }
 
 void clashdomewld::craft(
@@ -842,6 +920,10 @@ void clashdomewld::erasetable(
         for (auto itr = wallets.begin(); itr != wallets.end();) {
             itr = wallets.erase(itr);
         }
+    } else if (table_name == "gigaswap") {
+        for (auto itr = gigaswap.begin(); itr != gigaswap.end();) {
+            itr = gigaswap.erase(itr);
+        }
     }
 }
 
@@ -875,6 +957,30 @@ void clashdomewld::setaccvalues(
     });
 }
 
+void clashdomewld::initgsconf()
+{
+
+    require_auth(get_self());
+
+    vector<uint8_t> choices = {ROCK, PAPER, SCISSORS};
+
+    for (uint64_t i = 0; i < choices.size(); i++)
+    {
+        for (uint64_t j = 0; j < choices.size(); j++)
+        {
+            for (uint64_t k = 0; k < choices.size(); k++)
+            {
+
+                gigasconfig.emplace(CONTRACTN, [&](auto& config_row) {
+                    config_row.key = i * 9 + j * 3 + k;
+                    config_row.choices = {choices[i], choices[j], choices[k]};
+                    config_row.account = name("fitzcarraldo");
+                });
+            }
+        }
+    }
+}
+
 void clashdomewld::addcitizen(
     name account,   
     uint8_t type,
@@ -888,6 +994,143 @@ void clashdomewld::addcitizen(
         acc.type = type;
         acc.citizen_id = citizen_id;
     });
+}
+
+ACTION clashdomewld::receiverand(
+    uint64_t assoc_id,
+    checksum256 random_value
+) {
+
+    require_auth(name("orng.wax"));
+
+    auto gs_itr = gigaswap.find(assoc_id);
+
+    name account = name(assoc_id);
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(gs_itr != gigaswap.end(), "Invalid assoc_id " + account.to_string());
+
+    //cast the random_value to a smaller number
+    uint64_t max_value = 26;
+    uint64_t final_random_value = 0;
+
+    auto byte_array = random_value.extract_as_byte_array();
+
+    uint64_t random_int = 0;
+    for (int i = 0; i < 8; i++) {
+        random_int <<= 8;
+        random_int |= (uint64_t)byte_array[i];
+    }
+
+    final_random_value = random_int % max_value; 
+
+    auto rival_gs_itr = gigasconfig.find(final_random_value);
+
+    int8_t points = 0;
+
+    points += GIGASWAP_MAP[gs_itr->choices[0]][rival_gs_itr->choices[0]];
+    points += GIGASWAP_MAP[gs_itr->choices[1]][rival_gs_itr->choices[1]];
+    points += GIGASWAP_MAP[gs_itr->choices[2]][rival_gs_itr->choices[2]];
+
+    name winner = name("");
+
+    vector<asset> quantities = gs_itr->quantities;
+
+    if (points > 0) {
+
+        winner = account;
+
+        for (auto i = 0; i < quantities.size(); i++) {
+            if (quantities[i].amount > 0) {
+                uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
+                check(pos != -1, "Invalid symbol.");
+                check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
+
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+                    acc.balances.at(pos) -= quantities[i];
+                });
+
+                asset quantity2;
+            
+                quantity2.amount = quantities[i].amount * 2;
+
+                if (quantities[i].symbol == CREDITS_SYMBOL) {
+                    quantity2.symbol = LUDIO_SYMBOL;
+                } else if (quantities[i].symbol == CARBZ_SYMBOL) {
+                    quantity2.symbol = CDCARBZ_SYMBOL;
+                } else if (quantities[i].symbol == JIGOWATTS_SYMBOL) {
+                    quantity2.symbol = CDJIGO_SYMBOL;
+                }
+
+                action(
+                    permission_level{get_self(), name("active")},
+                    name("clashdometkn"),
+                    name("transfer"),
+                    std::make_tuple(
+                        get_self(),
+                        account,
+                        quantity2,
+                        "Gigaswap " + account.to_string()
+                    )
+                ).send();
+            }
+        }
+
+    } else if (points < 0) {
+
+        winner = rival_gs_itr->account;
+
+        for (auto i = 0; i < quantities.size(); i++) {
+            if (quantities[i].amount > 0) {
+                uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
+                check(pos != -1, "Invalid symbol.");
+                check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
+
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+                    acc.balances.at(pos) -= quantities[i];
+                });
+            }
+        }
+    }
+
+    gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
+        swap.status = DONE;
+        swap.opponent = rival_gs_itr->account;
+        swap.opponent_choices = rival_gs_itr->choices;
+        swap.winner = winner;
+    });
+
+    gigasconfig.modify(rival_gs_itr, CONTRACTN, [&](auto& swap) {
+        swap.account = account;
+    });
+
+    // action(
+    //     permission_level{get_self(), name("active")},
+    //     get_self(),
+    //     name("loggigaswap"),
+    //     std::make_tuple(
+    //         name(assoc_id),
+    //         gs_itr->choices,
+    //         rival_gs_itr->account,
+    //         rival_gs_itr->choices,
+    //         final_random_value,
+    //         points,
+    //         winner
+    //     )
+    // ).send();
+}
+
+void clashdomewld::loggigaswap(
+    name acount,
+    vector<uint8_t> player_choices,
+    name rival,
+    vector<uint8_t> rival_choices,
+    uint64_t random_value,
+    int8_t points,
+    name winner
+) {
+    require_auth(get_self());
 }
 
 void clashdomewld::receive_asset_transfer(

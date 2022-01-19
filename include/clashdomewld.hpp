@@ -1,5 +1,6 @@
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
+#include <eosio/crypto.hpp>
 #include <eosio/transaction.hpp>
 #include <atomicassets.hpp>
 #include <atomicdata.hpp>
@@ -26,6 +27,12 @@ public:
         name account,
         vector<asset> quantities
     );
+    ACTION withdrawgs(
+        name account,
+        vector<asset> quantities,
+        vector<uint8_t> choices,
+        uint64_t timestamp
+    );
     ACTION craft(
         name account, 
         uint32_t template_id,
@@ -45,7 +52,7 @@ public:
     );
 
     // TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
-     ACTION addcredits2(
+    ACTION addcredits2(
         name account,
         asset credits,
         vector<string> unclaimed_actions
@@ -147,6 +154,21 @@ public:
         name account,   
         uint8_t type,
         uint64_t citizen_id
+    );
+    ACTION initgsconf(
+    );
+    ACTION receiverand(
+        uint64_t assoc_id,
+        checksum256 random_value
+    );
+    ACTION loggigaswap(
+        name acount,
+        vector<uint8_t> player_choices,
+        name rival,
+        vector<uint8_t> rival_choices,
+        uint64_t random_value,
+        int8_t points,
+        name winner
     );
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
@@ -390,6 +412,40 @@ private:
 
     triggers_t triggers = triggers_t(get_self(), get_self().value);
 
+    // gigaswap config
+    TABLE gigasconfig_s {
+
+        uint8_t key;   
+        vector<uint8_t> choices;
+        name account;
+        
+        uint64_t primary_key() const { return key; }
+    };
+
+    typedef multi_index<name("gigasconfig"), gigasconfig_s> gigasconfig_t;
+
+    gigasconfig_t gigasconfig = gigasconfig_t(get_self(), get_self().value);
+
+    // gigaswap
+
+    TABLE gigaswap_s {
+
+        name account;
+        uint64_t timestamp;
+        vector<uint8_t> choices;
+        vector<asset> quantities;
+        uint8_t status;
+        name opponent; 
+        vector<uint8_t> opponent_choices;  
+        name winner;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("gigaswap"), gigaswap_s> gigaswap_t;
+
+    gigaswap_t gigaswap = gigaswap_t(get_self(), get_self().value); 
+
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
     void stakeAvatar(uint64_t asset_ids, name from, name to, string memo);
@@ -404,8 +460,6 @@ private:
     void checkEarlyAccess(name account, uint64_t early_access);
 
     // CONSTANTS
-
-    // TODO: change for production
 
     // const string COLLECTION_NAME = "clashdomewld";
     const string COLLECTION_NAME = "clashdomenft";
@@ -422,6 +476,14 @@ private:
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};
+
+    enum ChoiceType {ROCK = 0, PAPER, SCISSORS};
+    enum StatusType {PENDING = 0, DONE};
+
+    const int8_t LOSE = -1;
+    const int8_t TIE = 0;
+    const int8_t WIN = 1;
+    const vector<vector<int8_t>> GIGASWAP_MAP = {{TIE, LOSE, WIN}, {WIN, TIE, LOSE}, {LOSE, WIN, TIE}};
 
     // IN GAME TOKENS
     static constexpr symbol CREDITS_SYMBOL = symbol(symbol_code("CREDITS"), 4);
