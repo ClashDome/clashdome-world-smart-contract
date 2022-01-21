@@ -218,9 +218,6 @@ void clashdomewld::withdrawgs(
 
     require_auth(account);
 
-    // TODO: remove this
-    check(account == name("rapturechain"), "Only testing.");
-
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
 
