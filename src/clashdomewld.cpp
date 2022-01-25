@@ -11,15 +11,15 @@ void clashdomewld::unstake(
     if (type == TOOL_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
-        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
         auto tool_itr = tools.find(asset_id);
 
-        check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exists!");
+        check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
         check(tool_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
         auto tool_conf_itr = toolconfig.find(tool_itr->template_id);
-        check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exists!");
+        check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exist!");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
@@ -56,11 +56,11 @@ void clashdomewld::unstake(
     } else if (type == SLOT_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
-        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
         auto slot_itr = slots.find(asset_id);
 
-        check(slot_itr != slots.end(), "Slot with id " + to_string(asset_id) + " doesn't exists!");
+        check(slot_itr != slots.end(), "Slot with id " + to_string(asset_id) + " doesn't exist!");
         check(slot_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
         if (slot_itr->type == "Carbz") {
@@ -100,7 +100,7 @@ void clashdomewld::unstake(
         auto config_itr = config.begin();
 
         auto ac_itr = accounts.find(account.value);
-        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
         auto citizen_itr = citizens.find(account.value);
         check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
@@ -131,11 +131,11 @@ void clashdomewld::unstake(
     } else if (type == WALLET_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
-        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
         auto wallet_itr = wallets.find(asset_id);
 
-        check(wallet_itr != wallets.end(), "Wallet with id " + to_string(asset_id) + " doesn't exists!");
+        check(wallet_itr != wallets.end(), "Wallet with id " + to_string(asset_id) + " doesn't exist!");
         check(wallet_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
         check(ac_itr->unclaimed_credits.amount == 0, "You need to claim your Credits first.");
@@ -167,7 +167,7 @@ void clashdomewld::withdraw(
     require_auth(account);
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     for (auto i = 0; i < quantities.size(); i++) {
 
@@ -219,7 +219,7 @@ void clashdomewld::withdrawgs(
     require_auth(account);
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     for (auto i = 0; i < quantities.size(); i++) {
         if (quantities[i].amount > 0) {
@@ -312,15 +312,15 @@ void clashdomewld::repairbat(
     auto config_itr = config.begin();
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto tool_itr = tools.find(asset_id);
-    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exists!");
+    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
     
     check(tool_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
     auto tool_conf_itr = toolconfig.find(tool_itr->template_id);
-    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exists!");
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exist!");
 
     uint64_t pos = finder(ac_itr->balances, JIGOWATTS_SYMBOL);
     check(pos != -1, "Invalid symbol.");
@@ -350,15 +350,15 @@ void clashdomewld::repairint(
     auto config_itr = config.begin();
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto tool_itr = tools.find(asset_id);
-    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exists!");
+    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
     
     check(tool_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
     auto tool_conf_itr = toolconfig.find(tool_itr->template_id);
-    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exists!");
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exist!");
 
     uint64_t pos = finder(ac_itr->balances, CREDITS_SYMBOL);
     check(pos != -1, "Invalid symbol.");
@@ -387,7 +387,7 @@ void clashdomewld::repairstamina(
     auto config_itr = config.begin();
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " doesn't has an citizen!");
@@ -418,7 +418,7 @@ void clashdomewld::repairaccbat(
     auto config_itr = config.begin();
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     uint64_t pos = finder(ac_itr->balances, JIGOWATTS_SYMBOL);
     check(pos != -1, "Invalid symbol.");
@@ -443,18 +443,18 @@ void clashdomewld::claimtool(
     require_auth(account);
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto tool_itr = tools.find(asset_id);
 
-    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exists!");
+    check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
     check(tool_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
 
     auto tool_conf_itr = toolconfig.find(tool_itr->template_id);
-    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exists!");
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exist!");
 
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
@@ -488,7 +488,7 @@ void clashdomewld::claim(
     require_auth(account);
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
@@ -541,7 +541,7 @@ void clashdomewld::addcredits(
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto config_itr = config.begin();
 
@@ -628,7 +628,7 @@ void clashdomewld::addmaterials(
     require_auth(get_self());
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     for (auto i = 0; i < quantities.size(); i++) {
 
@@ -747,7 +747,7 @@ void clashdomewld::setcooldown(
     require_auth(get_self());
 
     auto tool_conf_itr = toolconfig.find(template_id);
-    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exists!");
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
 
     toolconfig.modify(tool_conf_itr, CONTRACTN, [&](auto& config_row) {
         config_row.cooldown = cooldown;
@@ -867,7 +867,7 @@ void clashdomewld::erasetoolconf(
 
     auto config_itr = toolconfig.find(template_id);
 
-    check(config_itr != toolconfig.end(), "Tool with template " + to_string(template_id) + " doesn't exists!");
+    check(config_itr != toolconfig.end(), "Tool with template " + to_string(template_id) + " doesn't exist!");
 
     toolconfig.erase(config_itr);
 }
@@ -940,7 +940,7 @@ void clashdomewld::setaccvalues(
     require_auth(get_self());
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.stamina = stamina;
@@ -1006,7 +1006,7 @@ ACTION clashdomewld::receiverand(
     name account = name(assoc_id);
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
     check(gs_itr != gigaswap.end(), "Invalid assoc_id " + account.to_string());
 
     //cast the random_value to a smaller number
@@ -1377,7 +1377,7 @@ void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
     }
 
     auto tool_itr = toolconfig.find(asset_itr->template_id);
-    check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(asset_itr->template_id) + " doesn't exists!");
+    check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(asset_itr->template_id) + " doesn't exist!");
 
     tools.emplace(CONTRACTN, [&](auto& tool) {
         tool.asset_id = asset_id;
@@ -1396,13 +1396,13 @@ void clashdomewld::craftTool(name account, uint32_t template_id)
 {
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto tool_itr = toolconfig.find(template_id);
-    check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exists!");
+    check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
 
     // check all necesary materials && remove materials
 
@@ -1483,13 +1483,13 @@ void clashdomewld::craftSlot(name account, uint32_t template_id)
 {
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto slot_itr = slotsconfig.find(template_id);
-    check(slot_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exists!");
+    check(slot_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exist!");
 
     // check all necesary materials && remove materials
 
@@ -1557,13 +1557,13 @@ void clashdomewld::craftWallet(name account, uint32_t template_id)
 {
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
     auto citizen_itr = citizens.find(account.value);
     check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto wallet_itr = walletconfig.find(template_id);
-    check(wallet_itr != walletconfig.end(), "Wallet with template id " + to_string(template_id) + " doesn't exists!");
+    check(wallet_itr != walletconfig.end(), "Wallet with template id " + to_string(template_id) + " doesn't exist!");
 
     // check all necesary materials && remove materials
 
