@@ -221,6 +221,12 @@ void clashdomewld::withdrawgs(
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exists!");
 
+    check(choices.size() == 3, "Invalid choices length.");
+
+    for (auto i = 0; i < choices.size(); i++) {
+        check(choices[i] >= 0 && choices[i] <= 2, "Invalid choices. Must be a number between 0 and 2.");
+    }
+
     for (auto i = 0; i < quantities.size(); i++) {
         if (quantities[i].amount > 0) {
             uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
@@ -991,6 +997,46 @@ void clashdomewld::addcitizen(
         acc.account = account;
         acc.type = type;
         acc.citizen_id = citizen_id;
+    });
+}
+
+void clashdomewld::addaccount(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto config_itr = config.begin();
+
+    vector<asset> balances;
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+    balances.push_back(credits);
+    
+    asset carbz;
+    carbz.symbol = CARBZ_SYMBOL;
+    carbz.amount = 0;
+    balances.push_back(carbz);
+
+    asset jigowatts;
+    jigowatts.symbol = JIGOWATTS_SYMBOL;
+    jigowatts.amount = 0;
+    balances.push_back(jigowatts);
+
+    uint16_t initial_free_slots_value = 1;
+
+    accounts.emplace(CONTRACTN, [&](auto& acc) {
+        acc.account = account;
+        acc.stamina = 100;
+        acc.battery = config_itr->init_battery;
+        acc.carbz_free_slots = initial_free_slots_value;
+        acc.jigowatts_free_slots = initial_free_slots_value;
+        acc.carbz_slots = initial_free_slots_value;
+        acc.jigowatts_slots = initial_free_slots_value;
+        acc.balances = balances;
+        acc.unclaimed_credits = credits;
     });
 }
 

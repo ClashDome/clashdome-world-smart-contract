@@ -155,6 +155,9 @@ public:
         uint8_t type,
         uint64_t citizen_id
     );
+    ACTION addaccount(
+        name account
+    );
     ACTION initgsconf(
     );
     ACTION receiverand(
