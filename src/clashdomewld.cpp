@@ -928,6 +928,10 @@ void clashdomewld::erasetable(
         for (auto itr = gigaswap.begin(); itr != gigaswap.end();) {
             itr = gigaswap.erase(itr);
         }
+    } else if (table_name == "gigasconfig2") {
+        for (auto itr = gigasconfig2.begin(); itr != gigasconfig2.end();) {
+            itr = gigasconfig2.erase(itr);
+        }
     }
 }
 
@@ -975,10 +979,10 @@ void clashdomewld::initgsconf()
             for (uint64_t k = 0; k < choices.size(); k++)
             {
 
-                gigasconfig.emplace(CONTRACTN, [&](auto& config_row) {
+                gigasconfig2.emplace(CONTRACTN, [&](auto& config_row) {
                     config_row.key = i * 9 + j * 3 + k;
                     config_row.choices = {choices[i], choices[j], choices[k]};
-                    config_row.account = name("fitzcarraldo");
+                    config_row.accounts = {name("fitzcarraldo"), name("rapturechain")};
                 });
             }
         }
@@ -1069,7 +1073,7 @@ ACTION clashdomewld::receiverand(
 
     final_random_value = random_int % max_value; 
 
-    auto rival_gs_itr = gigasconfig.find(final_random_value);
+    auto rival_gs_itr = gigasconfig2.find(final_random_value);
 
     int8_t points = 0;
 
@@ -1080,6 +1084,8 @@ ACTION clashdomewld::receiverand(
     name winner = name("");
 
     vector<asset> quantities = gs_itr->quantities;
+
+    name rival_name = rival_gs_itr->accounts[0] == account ? rival_gs_itr->accounts[1] : rival_gs_itr->accounts[0];
 
     if (points > 0) {
 
@@ -1123,7 +1129,7 @@ ACTION clashdomewld::receiverand(
 
     } else if (points < 0) {
 
-        winner = rival_gs_itr->account;
+        winner = rival_name;
 
         for (auto i = 0; i < quantities.size(); i++) {
             if (quantities[i].amount > 0) {
@@ -1140,14 +1146,31 @@ ACTION clashdomewld::receiverand(
 
     gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
         swap.status = DONE;
-        swap.opponent = rival_gs_itr->account;
+        swap.opponent = rival_name;
         swap.opponent_choices = rival_gs_itr->choices;
         swap.winner = winner;
     });
 
-    gigasconfig.modify(rival_gs_itr, CONTRACTN, [&](auto& swap) {
-        swap.account = account;
-    });
+    uint64_t initial_value = 0;
+    bool found = false;
+
+    auto player_gs_itr = gigasconfig2.find(initial_value);
+
+    while (player_gs_itr != gigasconfig2.end() && !found) {
+
+        if (player_gs_itr->choices[0] == gs_itr->choices[0] && player_gs_itr->choices[1] == gs_itr->choices[1] && player_gs_itr->choices[2] == gs_itr->choices[2]) {
+            found = true;
+            gigasconfig2.modify(player_gs_itr, CONTRACTN, [&](auto& swap) {
+
+                if (swap.accounts[0] != account && swap.accounts[1] != account) {
+                    swap.accounts[0] = swap.accounts[1];
+                    swap.accounts[1] = account;
+                }
+            });
+        } else {
+            player_gs_itr++;
+        }
+    }
 
     // action(
     //     permission_level{get_self(), name("active")},

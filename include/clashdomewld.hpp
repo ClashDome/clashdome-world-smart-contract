@@ -429,6 +429,20 @@ private:
 
     gigasconfig_t gigasconfig = gigasconfig_t(get_self(), get_self().value);
 
+    // gigaswap config  2
+    TABLE gigasconfig2_s {
+
+        uint8_t key;   
+        vector<uint8_t> choices;
+        vector<name> accounts;
+        
+        uint64_t primary_key() const { return key; }
+    };
+
+    typedef multi_index<name("gigasconfig2"), gigasconfig2_s> gigasconfig2_t;
+
+    gigasconfig2_t gigasconfig2 = gigasconfig2_t(get_self(), get_self().value);
+
     // gigaswap
 
     TABLE gigaswap_s {
