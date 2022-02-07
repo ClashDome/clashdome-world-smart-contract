@@ -527,7 +527,7 @@ void clashdomewld::claim(
     check(ac_itr->stamina >= wallet_stamina_consumed, "Insufficient stamina.");
     check(ac_itr->battery >= wallet_battery_consumed, "Insufficient battery.");
 
-    uint64_t max_claimable_credits = config_itr.max_unclaimed_credits * 10000;
+    uint64_t max_claimable_credits = config_itr->max_unclaimed_credits * 10000;
     uint64_t claimable_credits = (unclaimed_credits > max_claimable_credits) ? max_claimable_credits : unclaimed_credits;
     uint64_t remaining_credits = unclaimed_credits - claimable_credits;
 
