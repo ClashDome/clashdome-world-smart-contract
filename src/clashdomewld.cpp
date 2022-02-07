@@ -527,9 +527,13 @@ void clashdomewld::claim(
     check(ac_itr->stamina >= wallet_stamina_consumed, "Insufficient stamina.");
     check(ac_itr->battery >= wallet_battery_consumed, "Insufficient battery.");
 
+    uint64_t max_claimable_credits = config_itr->max_unclaimed_credits * 10000;
+    uint64_t claimable_credits = (unclaimed_credits > max_claimable_credits) ? max_claimable_credits : unclaimed_credits;
+    uint64_t remaining_credits = unclaimed_credits - claimable_credits;
+
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-        acc.balances.at(pos).amount += unclaimed_credits;
-        acc.unclaimed_credits.amount = 0;
+        acc.balances.at(pos).amount += claimable_credits;
+        acc.unclaimed_credits.amount = remaining_credits;
         acc.unclaimed_actions = unclaimed_actions;
         acc.stamina -= wallet_stamina_consumed;
         acc.battery -= wallet_battery_consumed;
@@ -549,30 +553,11 @@ void clashdomewld::addcredits(
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto config_itr = config.begin();
-
-    auto wallet_idx = wallets.get_index<name("byowner")>();
-    auto wallet_itr = wallet_idx.find(account.value);
-
-    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
-
-    if (wallet_itr != wallet_idx.end()) {
-
-        auto wallet_conf_itr = walletconfig.find(wallet_itr->template_id);
-        max_amount += wallet_conf_itr->extra_capacity * 10000;
-    }
-
-    // check(ac_itr->unclaimed_credits.amount < max_amount, "Your piggybank is full!");
-
-    if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
-        credits.amount = max_amount - ac_itr->unclaimed_credits.amount;
-    }
-
     vector<string> new_actions = ac_itr->unclaimed_actions;
 
     for (auto i = 0; i < unclaimed_actions.size(); i++) {
-            new_actions.push_back(unclaimed_actions.at(i));
-        }
+        new_actions.push_back(unclaimed_actions.at(i));
+    }
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
         account_itr.unclaimed_credits.amount += credits.amount;
@@ -592,32 +577,13 @@ void clashdomewld::addcredits2(
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
-
     if (ac_itr != accounts.end()) {
-        auto config_itr = config.begin();
-
-        auto wallet_idx = wallets.get_index<name("byowner")>();
-        auto wallet_itr = wallet_idx.find(account.value);
-
-        uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
-
-        if (wallet_itr != wallet_idx.end()) {
-
-            auto wallet_conf_itr = walletconfig.find(wallet_itr->template_id);
-            max_amount += wallet_conf_itr->extra_capacity * 10000;
-        }
-
-        // check(ac_itr->unclaimed_credits.amount < max_amount, "Your piggybank is full!");
-
-        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
-            credits.amount = max_amount - ac_itr->unclaimed_credits.amount;
-        }
-
+        
         vector<string> new_actions = ac_itr->unclaimed_actions;
 
         for (auto i = 0; i < unclaimed_actions.size(); i++) {
-                new_actions.push_back(unclaimed_actions.at(i));
-            }
+            new_actions.push_back(unclaimed_actions.at(i));
+        }
 
         accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
             account_itr.unclaimed_credits.amount += credits.amount;
