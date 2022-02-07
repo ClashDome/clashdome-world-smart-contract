@@ -1,4 +1,5 @@
 #include <eosio/eosio.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/transaction.hpp>
@@ -164,6 +165,8 @@ public:
         uint64_t assoc_id,
         checksum256 random_value
     );
+    ACTION migratecitiz(
+    );
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
@@ -173,7 +176,6 @@ public:
         int8_t points,
         name winner
     );
-
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
         name to,
@@ -205,6 +207,21 @@ private:
     typedef multi_index<name("citizens"), citizens_s> citizens_t;
 
     citizens_t citizens = citizens_t(get_self(), get_self().value); 
+
+    // citiz
+    TABLE citiz_s {
+
+        name account;
+        uint8_t type;
+        uint64_t citizen_id;
+        string avatar;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("citiz"), citiz_s> citiz_t;
+
+    citiz_t citiz = citiz_t(get_self(), get_self().value); 
 
     // accounts
     TABLE accounts_s {

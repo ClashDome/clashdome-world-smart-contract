@@ -1188,6 +1188,22 @@ ACTION clashdomewld::receiverand(
     // ).send();
 }
 
+void clashdomewld::migratecitiz(
+) {
+    require_auth(get_self());
+
+    auto citizen_itr = citizens.begin();
+
+    while (citizen_itr != citizens.end()) {
+        citiz.emplace(CONTRACTN, [&](auto& citizen) {
+            citizen.account = citizen_itr->account;
+            citizen.type = citizen_itr->type;
+            citizen.citizen_id = citizen_itr->citizen_id;
+        });
+        citizen_itr++;
+    }
+}
+
 void clashdomewld::loggigaswap(
     name acount,
     vector<uint8_t> player_choices,
