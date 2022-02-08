@@ -167,6 +167,10 @@ public:
     );
     ACTION migratecitiz(
     );
+    ACTION addavatar(
+        name acount,
+        string avatar
+    );
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
