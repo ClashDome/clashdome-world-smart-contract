@@ -97,6 +97,9 @@ void clashdomewld::unstake(
         slots.erase(slot_itr);
     } else if (type == CITIZEN_SCHEMA_NAME) {
 
+        // TODO: remove this
+        check(0 == 1, "Currently under maintenance. Try again later.");
+
         auto config_itr = config.begin();
 
         auto ac_itr = accounts.find(account.value);
@@ -1157,6 +1160,35 @@ ACTION clashdomewld::receiverand(
     // ).send();
 }
 
+void clashdomewld::migratecitiz(
+) {
+    require_auth(name("packsopenerx"));
+
+    auto citizen_itr = citizens.begin();
+
+    while (citizen_itr != citizens.end()) {
+        citiz.emplace(CONTRACTN, [&](auto& citizen) {
+            citizen.account = citizen_itr->account;
+            citizen.type = citizen_itr->type;
+            citizen.citizen_id = citizen_itr->citizen_id;
+        });
+        citizen_itr++;
+    }
+}
+
+void clashdomewld::addavatar(
+    name acount,
+    string avatar
+) {
+    require_auth(get_self());
+
+    auto citizen_itr = citiz.find(acount.value);
+
+    citiz.modify(citizen_itr, CONTRACTN, [&](auto& citizen) {
+        citizen.avatar = avatar;
+    });
+}
+
 void clashdomewld::loggigaswap(
     name acount,
     vector<uint8_t> player_choices,
@@ -1281,6 +1313,9 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
 
 void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string memo)
 {
+
+    // TODO: remove this
+    check(0 == 1, "Currently under maintenance. Try again later.");
 
     // const size_t fb = memo.find(":");
     // string d1 = memo.substr(0, fb);
