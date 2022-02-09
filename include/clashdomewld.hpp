@@ -165,8 +165,6 @@ public:
         uint64_t assoc_id,
         checksum256 random_value
     );
-    ACTION migratecitiz(
-    );
     ACTION addavatar(
         name acount,
         string avatar
@@ -197,20 +195,6 @@ public:
 private:
 
     // TABLES 
-
-    // citizens
-    TABLE citizens_s {
-
-        name account;
-        uint8_t type;
-        uint64_t citizen_id;
-        
-        uint64_t primary_key() const { return account.value; }
-    };
-
-    typedef multi_index<name("citizens"), citizens_s> citizens_t;
-
-    citizens_t citizens = citizens_t(get_self(), get_self().value); 
 
     // citiz
     TABLE citiz_s {

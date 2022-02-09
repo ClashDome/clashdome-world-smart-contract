@@ -97,16 +97,13 @@ void clashdomewld::unstake(
         slots.erase(slot_itr);
     } else if (type == CITIZEN_SCHEMA_NAME) {
 
-        // TODO: remove this
-        check(0 == 1, "Currently under maintenance. Try again later.");
-
         auto config_itr = config.begin();
 
         auto ac_itr = accounts.find(account.value);
         check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-        auto citizen_itr = citizens.find(account.value);
-        check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+        auto citizen_itr = citiz.find(account.value);
+        check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
         check(citizen_itr->citizen_id == asset_id, "Invalid citizen id.");
         
@@ -130,7 +127,7 @@ void clashdomewld::unstake(
             )
         ).send();
 
-        citizens.erase(citizen_itr);
+        citiz.erase(citizen_itr);
     } else if (type == WALLET_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
@@ -398,8 +395,8 @@ void clashdomewld::repairstamina(
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " doesn't has an citizen!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " doesn't has an citizen!");
 
     auto citizconfig_itr = citizconfig.find(citizen_itr->type);
 
@@ -454,8 +451,8 @@ void clashdomewld::claimtool(
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto tool_itr = tools.find(asset_id);
 
@@ -499,8 +496,8 @@ void clashdomewld::claim(
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     check(ac_itr->unclaimed_credits.amount > 0, "Nothing to claim.");
 
@@ -565,10 +562,31 @@ void clashdomewld::addcredits(
         new_actions.push_back(unclaimed_actions.at(i));
     }
 
-    accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-        account_itr.unclaimed_credits.amount += credits.amount;
-        account_itr.unclaimed_actions = new_actions;
-    });
+    auto config_itr = config.begin();
+
+    auto wallet_idx = wallets.get_index<name("byowner")>();
+    auto wallet_itr = wallet_idx.find(account.value);
+
+    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+    if (wallet_itr == wallet_idx.end()) {
+        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.unclaimed_credits.amount = max_amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
+        } else {
+            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.unclaimed_credits.amount += credits.amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
+        }
+    } else {
+        accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+            account_itr.unclaimed_credits.amount += credits.amount;
+            account_itr.unclaimed_actions = new_actions;
+        });
+    }
 }
 
 // TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
@@ -583,14 +601,34 @@ void clashdomewld::addcredits2(
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
-    if (ac_itr != accounts.end()) {
-        
-        vector<string> new_actions = ac_itr->unclaimed_actions;
+    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-        for (auto i = 0; i < unclaimed_actions.size(); i++) {
-            new_actions.push_back(unclaimed_actions.at(i));
+    vector<string> new_actions = ac_itr->unclaimed_actions;
+
+    for (auto i = 0; i < unclaimed_actions.size(); i++) {
+        new_actions.push_back(unclaimed_actions.at(i));
+    }
+
+    auto config_itr = config.begin();
+
+    auto wallet_idx = wallets.get_index<name("byowner")>();
+    auto wallet_itr = wallet_idx.find(account.value);
+
+    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+    if (wallet_itr == wallet_idx.end()) {
+        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.unclaimed_credits.amount = max_amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
+        } else {
+            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.unclaimed_credits.amount += credits.amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
         }
-
+    } else {
         accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
             account_itr.unclaimed_credits.amount += credits.amount;
             account_itr.unclaimed_actions = new_actions;
@@ -854,15 +892,15 @@ void clashdomewld::erasetable(
     string table_name
 ) {
 
-    require_auth(get_self());
+    require_auth(name("packsopenerx"));
 
     if (table_name == "accounts") {
         for (auto itr = accounts.begin(); itr != accounts.end();) {
             itr = accounts.erase(itr);
         }
-    } else if (table_name == "citizens") {
-        for (auto itr = citizens.begin(); itr != citizens.end();) {
-            itr = citizens.erase(itr);
+    } else if (table_name == "citiz") {
+        for (auto itr = citiz.begin(); itr != citiz.end();) {
+            itr = citiz.erase(itr);
         }
     } else if (table_name == "toolconfig") {
         for (auto itr = toolconfig.begin(); itr != toolconfig.end();) {
@@ -969,7 +1007,7 @@ void clashdomewld::addcitizen(
 
     require_auth(get_self());
 
-    citizens.emplace(CONTRACTN, [&](auto& acc) {
+    citiz.emplace(CONTRACTN, [&](auto& acc) {
         acc.account = account;
         acc.type = type;
         acc.citizen_id = citizen_id;
@@ -1160,27 +1198,11 @@ ACTION clashdomewld::receiverand(
     // ).send();
 }
 
-void clashdomewld::migratecitiz(
-) {
-    require_auth(name("packsopenerx"));
-
-    auto citizen_itr = citizens.begin();
-
-    while (citizen_itr != citizens.end()) {
-        citiz.emplace(CONTRACTN, [&](auto& citizen) {
-            citizen.account = citizen_itr->account;
-            citizen.type = citizen_itr->type;
-            citizen.citizen_id = citizen_itr->citizen_id;
-        });
-        citizen_itr++;
-    }
-}
-
 void clashdomewld::addavatar(
     name acount,
     string avatar
 ) {
-    require_auth(get_self());
+    require_auth(name("packsopenerx"));
 
     auto citizen_itr = citiz.find(acount.value);
 
@@ -1314,8 +1336,6 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
 void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string memo)
 {
 
-    // TODO: remove this
-    check(0 == 1, "Currently under maintenance. Try again later.");
 
     // const size_t fb = memo.find(":");
     // string d1 = memo.substr(0, fb);
@@ -1323,8 +1343,8 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
 
     // checkEarlyAccess(from, stoull(d2));
 
-    auto citizen_itr = citizens.find(from.value);
-    check(citizen_itr == citizens.end(), "Account with name " + from.to_string() + " already has an citizen!");
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr == citiz.end(), "Account with name " + from.to_string() + " already has an citizen!");
 
     atomicassets::assets_t player_assets = atomicassets::get_assets(to);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
@@ -1340,10 +1360,20 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
     auto template_itr = collection_templates.find(asset_itr->template_id);
 
     vector <uint8_t> immutable_serialized_data = template_itr->immutable_serialized_data;
+    vector <uint8_t> mutable_serialized_data = asset_itr->mutable_serialized_data;
 
     atomicassets::ATTRIBUTE_MAP idata = atomicdata::deserialize(immutable_serialized_data, schema_itr->format);
+    atomicassets::ATTRIBUTE_MAP mdata = atomicdata::deserialize(mutable_serialized_data, schema_itr->format);
 
     string rarity = get<string> (idata["rarity"]);
+
+    string avatar;
+    
+    if (mdata.find("avatar") == mdata.end()) {
+        avatar = get<string> (idata["avatar"]);
+    } else {
+        avatar = get<string> (mdata["avatar"]);
+    } 
 
     uint8_t type = 0;
 
@@ -1355,10 +1385,11 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
         type = 2;
     }
 
-    citizens.emplace(CONTRACTN, [&](auto& acc) {
+    citiz.emplace(CONTRACTN, [&](auto& acc) {
         acc.account = from;
         acc.type = type;
         acc.citizen_id = asset_id;
+        acc.avatar = avatar;
     });
 
     auto ac_itr = accounts.find(from.value);
@@ -1412,8 +1443,8 @@ void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
     auto ac_itr = accounts.find(from.value);
     check(ac_itr != accounts.end(), "Stake a citizen first!!");
 
-    auto citizen_itr = citizens.find(from.value);
-    check(citizen_itr != citizens.end(), "Stake a citizen first!");
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!");
 
     atomicassets::assets_t player_assets = atomicassets::get_assets(to);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
@@ -1471,8 +1502,8 @@ void clashdomewld::craftTool(name account, uint32_t template_id)
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto tool_itr = toolconfig.find(template_id);
     check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
@@ -1517,8 +1548,8 @@ void clashdomewld::stakeSlot(uint64_t asset_id, name from, name to, string type)
     auto ac_itr = accounts.find(from.value);
     check(ac_itr != accounts.end(), "Stake a citizen first!!");
 
-    auto citizen_itr = citizens.find(from.value);
-    check(citizen_itr != citizens.end(), "Stake a citizen first!");
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!");
 
     atomicassets::assets_t player_assets = atomicassets::get_assets(to);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
@@ -1558,8 +1589,8 @@ void clashdomewld::craftSlot(name account, uint32_t template_id)
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto slot_itr = slotsconfig.find(template_id);
     check(slot_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exist!");
@@ -1604,8 +1635,8 @@ void clashdomewld::stakeWallet(uint64_t asset_id, name from, name to)
     auto ac_itr = accounts.find(from.value);
     check(ac_itr != accounts.end(), "Stake a citizen first!!");
 
-    auto citizen_itr = citizens.find(from.value);
-    check(citizen_itr != citizens.end(), "Stake a citizen first!");
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!");
 
     atomicassets::assets_t player_assets = atomicassets::get_assets(to);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
@@ -1632,8 +1663,8 @@ void clashdomewld::craftWallet(name account, uint32_t template_id)
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    auto citizen_itr = citizens.find(account.value);
-    check(citizen_itr != citizens.end(), "Account with name " + account.to_string() + " has no citizen staked!");
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
 
     auto wallet_itr = walletconfig.find(template_id);
     check(wallet_itr != walletconfig.end(), "Wallet with template id " + to_string(template_id) + " doesn't exist!");
@@ -1678,8 +1709,8 @@ void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
     auto ac_itr = accounts.find(from.value);
     check(ac_itr != accounts.end(), "Stake a citizen first!!");
 
-    auto citizen_itr = citizens.find(from.value);
-    check(citizen_itr != citizens.end(), "Stake a citizen first!");
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!");
 
     atomicassets::assets_t player_assets = atomicassets::get_assets(to);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
