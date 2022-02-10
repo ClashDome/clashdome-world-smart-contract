@@ -1315,6 +1315,15 @@ void clashdomewld::receive_token_transfer(
                 account.balances.at(pos) += quantity2;
             });
         }
+    } else if (memo.find("social") != string::npos) {
+
+        // TODO: remove
+        check(from == name("bozug.wam") || from == name("rapturechain"), "Currently disabled.");
+
+        check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid token symbol.");
+        // check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
+        check(quantity.amount == 10000, "Invalid token amount.");
+        parseSocialsMemo(from, memo);
     } else {
         check(memo == "transfer", "Invalid memo.");
     }
@@ -1775,4 +1784,36 @@ void clashdomewld::checkEarlyAccess(name account, uint64_t early_access) {
 
     check(assets_itr != assets.end(), "Account " + account.to_string() + " doesn't have the required NFT to play!");
     check(assets_itr->template_id == EARLY_ACCESS_TEMPLATE_ID, "The id provided does not correspond to the required NFT to play!");
+}
+
+void clashdomewld::parseSocialsMemo(name account, string memo)
+{
+
+    // memo: "social{cn:"pepe",co:"es",tw:"escrichee"}"
+
+    // remove social from memo
+    memo.erase(0,6);
+
+    check(memo.length() < 200, "Memo maximum length.");
+    
+    auto social_data = json::parse(memo);
+
+    check(social_data[CUSTOM_NAME].get_ref<json::string_t&>().size() < 20, " Custom name maximum length = 20");
+    check(social_data[COUNTRY].get_ref<json::string_t&>().size() < 20, " Country maximum length = 20");
+    check(social_data[TWITTER].get_ref<json::string_t&>().size() < 20, " Twitter account maximum length = 20");
+    check(social_data[TELEGRAM].get_ref<json::string_t&>().size() < 20, " Telegram account maximum length = 20");
+    check(social_data[DISCORD].get_ref<json::string_t&>().size() < 20, " Discord account maximum length = 20");
+
+    auto ac_itr = social.find(account.value);
+
+    if (ac_itr == social.end()) {
+        social.emplace(CONTRACTN, [&](auto& acc) {
+            acc.account = account;
+            acc.data = social_data.dump();
+        });
+    } else {
+        social.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
 }

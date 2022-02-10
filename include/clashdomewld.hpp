@@ -6,9 +6,12 @@
 #include <atomicassets.hpp>
 #include <atomicdata.hpp>
 #include <string>
+#include <nlohmann/json.hpp>
 
 using namespace eosio;
 using namespace std;
+
+using json = nlohmann::json;
 
 #define EOSIO name("eosio")
 #define CONTRACTN name("clashdomewld")
@@ -195,6 +198,19 @@ public:
 private:
 
     // TABLES 
+
+    // social
+    TABLE social_s {
+        
+        name account;
+        string data;      
+
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("social"), social_s> social_t;
+    
+    social_t social = social_t(get_self(), get_self().value);
 
     // citiz
     TABLE citiz_s {
@@ -480,6 +496,7 @@ private:
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
     void checkEarlyAccess(name account, uint64_t early_access);
+    void parseSocialsMemo(name account, string memo);
 
     // CONSTANTS
 
@@ -495,9 +512,16 @@ private:
     const uint32_t PACKS_TEMPLATE_ID = 373360;
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
+    const uint64_t SOCIAL_CARBZ_PAYMENT = 10000000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};
+
+    const string CUSTOM_NAME = "cn";
+    const string COUNTRY = "co";
+    const string TWITTER = "tw";
+    const string TELEGRAM = "tg";
+    const string DISCORD = "dc";
 
     enum ChoiceType {ROCK = 0, PAPER, SCISSORS};
     enum StatusType {PENDING = 0, DONE};
