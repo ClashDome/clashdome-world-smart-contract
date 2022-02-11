@@ -415,6 +415,20 @@ void clashdomewld::repairstamina(
     });
 }
 
+void clashdomewld::editsocial(
+    name account,
+    string memo
+) {
+
+    require_auth(account);
+
+    auto ac_itr = social.find(account.value);
+
+    check(ac_itr != social.end(), "You need to pay before smartass!");
+
+    parseSocialsMemo(account, memo);
+}
+
 void clashdomewld::repairaccbat(
     name account
 ) {
@@ -1317,9 +1331,6 @@ void clashdomewld::receive_token_transfer(
         }
     } else if (memo.find("social") != string::npos) {
 
-        // TODO: remove
-        check(from == name("bozug.wam") || from == name("rapturechain"), "Currently disabled.");
-
         check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid token symbol.");
         // check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
         check(quantity.amount == 10000, "Invalid token amount.");
@@ -1344,7 +1355,6 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
 
 void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string memo)
 {
-
 
     // const size_t fb = memo.find(":");
     // string d1 = memo.substr(0, fb);

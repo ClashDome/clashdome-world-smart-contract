@@ -76,6 +76,10 @@ public:
     ACTION repairstamina(
         name account
     );
+    ACTION editsocial(
+        name account,
+        string memo
+    );
     ACTION addmaterials(
         name account,
         vector<asset> quantities
