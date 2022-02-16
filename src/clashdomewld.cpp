@@ -1333,8 +1333,7 @@ void clashdomewld::receive_token_transfer(
     } else if (memo.find("social") != string::npos) {
 
         check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid token symbol.");
-        // check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
-        check(quantity.amount == 10000, "Invalid token amount.");
+        check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
         parseSocialsMemo(from, memo);
     } else {
         check(memo == "transfer", "Invalid memo.");
