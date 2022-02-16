@@ -232,7 +232,7 @@ void clashdomewld::withdrawgs(
             uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
             check(pos != -1, "Invalid symbol.");
             check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
-            check(quantities[i].amount <= 3000, "Sorry. GigaSwap is limited to 3,000 tokens");
+            check(quantities[i].amount <= 30000000, "Sorry. GigaSwap is limited to 3,000 tokens");
         }
     }
 
