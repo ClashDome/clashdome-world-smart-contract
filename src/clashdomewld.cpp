@@ -1085,7 +1085,7 @@ ACTION clashdomewld::receiverand(
     check(gs_itr != gigaswap.end(), "Invalid assoc_id " + account.to_string());
 
     //cast the random_value to a smaller number
-    uint64_t max_value = 26;
+    uint64_t max_value = 27;
     uint64_t final_random_value = 0;
 
     auto byte_array = random_value.extract_as_byte_array();
