@@ -486,7 +486,25 @@ private:
 
     typedef multi_index<name("gigaswap"), gigaswap_s> gigaswap_t;
 
-    gigaswap_t gigaswap = gigaswap_t(get_self(), get_self().value); 
+    gigaswap_t gigaswap = gigaswap_t(get_self(), get_self().value);
+
+    //stats
+    TABLE tokenstats_s{
+
+        uint32_t day;
+        asset mined_carbz;
+        asset consumed_carbz;
+        asset mined_credits;
+        asset consumed_credits;
+        asset mined_jigo;
+        asset consumed_jigo;
+
+        uint64_t primary_key() const {return (uint64_t) day;}
+    };
+
+    typedef multi_index<name("tokenstats"), tokenstats_s> coindailystats_t;
+
+    coindailystats_t tokenstats = coindailystats_t(get_self(), get_self().value); 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -501,6 +519,8 @@ private:
     void burnTokens(asset tokens, string memo_extra);
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
+    void updateDailyStats(asset assetVal,int type);
+    uint32_t epochToDay(time_t time);
 
     // CONSTANTS
 
