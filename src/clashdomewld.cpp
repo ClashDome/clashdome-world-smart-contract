@@ -1042,7 +1042,7 @@ void clashdomewld::initgsconf()
                 gigasconfig2.emplace(CONTRACTN, [&](auto& config_row) {
                     config_row.key = i * 9 + j * 3 + k;
                     config_row.choices = {choices[i], choices[j], choices[k]};
-                    config_row.accounts = {name("fitzcarraldo"), name("rapturechain")};
+                    config_row.accounts = {name("clashdomeali"), name("clashdomebob")};
                 });
             }
         }
