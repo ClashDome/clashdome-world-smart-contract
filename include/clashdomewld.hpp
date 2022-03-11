@@ -494,10 +494,13 @@ private:
         uint32_t day;
         asset mined_carbz;
         asset consumed_carbz;
+        asset burned_carbz;
         asset mined_credits;
         asset consumed_credits;
+        asset burned_credits;
         asset mined_jigo;
         asset consumed_jigo;
+        asset burned_jigo;
 
         uint64_t primary_key() const {return (uint64_t) day;}
     };

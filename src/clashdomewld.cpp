@@ -345,6 +345,12 @@ void clashdomewld::repairbat(
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.balances.at(pos).amount -= (battery_necessary * 10000) / config_itr->jigowatts_to_battery;
     });
+
+    //update daily token stats
+    asset update_stats_asset;
+    update_stats_asset.amount=(battery_necessary * 10000) / config_itr->jigowatts_to_battery;
+    update_stats_asset.symbol=JIGOWATTS_SYMBOL;
+    updateDailyStats(update_stats_asset,0);
 }
 
 void clashdomewld::repairint(
@@ -383,6 +389,12 @@ void clashdomewld::repairint(
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.balances.at(pos).amount -= (integrity_necessary * 10000) / config_itr->credits_to_integrity;
     });
+
+    //update daily token stats
+    asset update_stats_asset;
+    update_stats_asset.amount=(integrity_necessary * 10000) / config_itr->credits_to_integrity;
+    update_stats_asset.symbol=CREDITS_SYMBOL;
+    updateDailyStats(update_stats_asset,0);
 }
 
 void clashdomewld::repairstamina(
@@ -414,6 +426,12 @@ void clashdomewld::repairstamina(
         acc.stamina += stamina;
         acc.balances.at(pos).amount -= (stamina * 10000) / config_itr->carbz_to_stamina;
     });
+
+    //update daily token stats
+    asset update_stats_asset;
+    update_stats_asset.amount=(stamina * 10000) / config_itr->carbz_to_stamina;
+    update_stats_asset.symbol=CARBZ_SYMBOL;
+    updateDailyStats(update_stats_asset,0);
 }
 
 void clashdomewld::editsocial(
@@ -500,6 +518,12 @@ void clashdomewld::claimtool(
         tool.integrity -= tool_conf_itr->integrity_consumed;
         tool.last_claim = timestamp;
     });
+    //update daily token stats
+    asset update_stats_asset;
+    update_stats_asset.amount=claimed;
+    update_stats_asset.symbol=tool_conf_itr->rewards[0].symbol;
+    updateDailyStats(update_stats_asset,1);
+    
 }
 
 void clashdomewld::claim(
@@ -557,6 +581,7 @@ void clashdomewld::claim(
         acc.battery -= wallet_battery_consumed;
     });
     
+    //update daily token stats
     asset update_stats_asset;
     update_stats_asset.amount=claimable_credits;
     update_stats_asset.symbol=CREDITS_SYMBOL;
@@ -911,8 +936,8 @@ void clashdomewld::erasetoolconf(
 void clashdomewld::erasetable(
     string table_name
 ) {
-
-    require_auth(name("packsopenerx"));
+    require_auth(get_self());
+    //require_auth(name("packsopenerx"));
 
     if (table_name == "accounts") {
         for (auto itr = accounts.begin(); itr != accounts.end();) {
@@ -962,7 +987,12 @@ void clashdomewld::erasetable(
         for (auto itr = gigasconfig2.begin(); itr != gigasconfig2.end();) {
             itr = gigasconfig2.erase(itr);
         }
+    } else if (table_name == "tokenstats") {
+        for (auto itr = tokenstats.begin(); itr != tokenstats.end();) {
+            itr = tokenstats.erase(itr);
+        }
     }
+
 }
 
 void clashdomewld::setaccvalues(
@@ -1154,6 +1184,10 @@ ACTION clashdomewld::receiverand(
                         "Gigaswap " + account.to_string()
                     )
                 ).send();
+                //update daily token stats
+                quantity2.symbol=quantities[i].symbol;
+                updateDailyStats(quantity2,0);
+
             }
         }
 
@@ -1170,6 +1204,9 @@ ACTION clashdomewld::receiverand(
                 accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
                     acc.balances.at(pos) -= quantities[i];
                 });
+                
+                //update daily token stats
+                updateDailyStats(quantities[i],2);
             }
         }
     }
@@ -1546,6 +1583,9 @@ void clashdomewld::craftTool(name account, uint32_t template_id)
         });
 
         burnTokens(tool_itr->craft[i], "tool with template_id " + to_string(template_id) + ".");
+
+        //update daily token stats
+        updateDailyStats(tool_itr->craft[i],0);
     }
 
     // mint and send tool
@@ -1633,6 +1673,9 @@ void clashdomewld::craftSlot(name account, uint32_t template_id)
         });
 
         burnTokens(slot_itr->craft[i], "slot with template_id " + to_string(template_id) + ".");
+        
+        //update daily token stats
+        updateDailyStats(slot_itr->craft[i],0);
     }
 
     // mint and send slot
@@ -1707,6 +1750,9 @@ void clashdomewld::craftWallet(name account, uint32_t template_id)
         });
 
         burnTokens(wallet_itr->craft[i], "wallet with template_id " + to_string(template_id) + ".");
+        
+        //update daily token stats
+        updateDailyStats(wallet_itr->craft[i],0);
     }
 
     // mint and send slot
@@ -1780,6 +1826,7 @@ void clashdomewld::burnTokens(asset tokens, string memo_extra)
         credits.symbol = CDCARBZ_SYMBOL;
     }
 
+
     action (
         permission_level{get_self(), name("active")},
         name("clashdometkn"),
@@ -1789,6 +1836,9 @@ void clashdomewld::burnTokens(asset tokens, string memo_extra)
             "Crafting " + memo_extra
         )
     ).send();
+
+    credits.symbol=tokens.symbol;
+    updateDailyStats(credits,2);
 }
 
 void clashdomewld::checkEarlyAccess(name account, uint64_t early_access) {
@@ -1853,12 +1903,15 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
             new_d.day = day;
             new_d.mined_carbz=nullasset;
             new_d.consumed_carbz=nullasset;
+            new_d.burned_carbz=nullasset;
             nullasset.symbol=CREDITS_SYMBOL;
             new_d.mined_credits=nullasset;
             new_d.consumed_credits=nullasset;
+            new_d.burned_credits=nullasset;
             nullasset.symbol=JIGOWATTS_SYMBOL;
             new_d.mined_jigo=nullasset;
             new_d.consumed_jigo=nullasset;
+            new_d.burned_jigo=nullasset;
         });
     }
     if(symbol==CARBZ_SYMBOL){
@@ -1870,12 +1923,19 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
                 mod_day.mined_carbz.amount=currtoken;
             });
         
-        }else{
+        }else if(type==0){
         //consumed carbz++
         int64_t currtoken=ptokenstatsitr->consumed_carbz.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_carbz.amount=currtoken;
+            });
+        }else if(type==2){
+        //burned carbz++
+        int64_t currtoken=ptokenstatsitr->burned_carbz.amount;
+        currtoken += amount;
+        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                mod_day.burned_carbz.amount=currtoken;
             });
         }
     }
@@ -1888,30 +1948,44 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
                 mod_day.mined_credits.amount=currtoken;
             });
         
-        }else{
+        }else if(type==0){
         //consumed credits++
         int64_t currtoken=ptokenstatsitr->consumed_credits.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_credits.amount=currtoken;
             });
+        }else if(type==2){
+        //burned credits++
+        int64_t currtoken=ptokenstatsitr->burned_carbz.amount;
+        currtoken += amount;
+        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                mod_day.burned_credits.amount=currtoken;
+            });
         }
     }
     else if(symbol==JIGOWATTS_SYMBOL){
         if (type==1){
-        //minted carbz++
+        //minted jigo++
         int64_t currtoken=ptokenstatsitr->mined_jigo.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.mined_jigo.amount=currtoken;
             });
         
-        }else{
-        //consumed carbz++
+        }else if(type==0){
+        //consumed jigo++
         int64_t currtoken=ptokenstatsitr->consumed_jigo.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_jigo.amount=currtoken;
+            });
+        }else if(type==2){
+        //burned jigo++
+        int64_t currtoken=ptokenstatsitr->burned_jigo.amount;
+        currtoken += amount;
+        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                mod_day.burned_jigo.amount=currtoken;
             });
         }
     }
@@ -1921,3 +1995,8 @@ uint32_t clashdomewld::epochToDay(time_t time){
 	uint32_t daytime=0;
 	return daytime=(tm_gmt->tm_year+1900)*10000+(tm_gmt->tm_mon+1)*100+(tm_gmt->tm_mday);
 }
+/* 
+symbol clashdomewld::getSymbol(a){
+    if(a==)
+
+}*/
