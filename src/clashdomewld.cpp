@@ -1185,8 +1185,7 @@ ACTION clashdomewld::receiverand(
                     )
                 ).send();
                 //update daily token stats
-                quantity2.symbol=quantities[i].symbol;
-                updateDailyStats(quantity2,0);
+                updateDailyStats(quantities[i],1);
 
             }
         }
@@ -1957,7 +1956,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
             });
         }else if(type==2){
         //burned credits++
-        int64_t currtoken=ptokenstatsitr->burned_carbz.amount;
+        int64_t currtoken=ptokenstatsitr->burned_credits.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.burned_credits.amount=currtoken;
