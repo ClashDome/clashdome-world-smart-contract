@@ -1204,8 +1204,30 @@ ACTION clashdomewld::receiverand(
                     acc.balances.at(pos) -= quantities[i];
                 });
                 
+                            
                 //update daily token stats
+                
                 updateDailyStats(quantities[i],2);
+                updateDailyStats(quantities[i],0);
+                
+                //burn tokens 
+                if (quantities[i].symbol == JIGOWATTS_SYMBOL) {
+                    quantities[i].symbol = CDJIGO_SYMBOL;
+                } else if (quantities[i].symbol == CREDITS_SYMBOL) {
+                    quantities[i].symbol = LUDIO_SYMBOL;
+                } else if (quantities[i].symbol == CARBZ_SYMBOL) {
+                    quantities[i].symbol = CDCARBZ_SYMBOL;
+                }
+                action (
+                    permission_level{get_self(), name("active")},
+                    name("clashdometkn"),
+                    name("burn"),
+                    std::make_tuple(
+                        quantities[i],
+                        "Gigaswap " + quantities[i].to_string()
+                    )
+                ).send();
+
             }
         }
     }
