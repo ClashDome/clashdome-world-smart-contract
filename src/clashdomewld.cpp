@@ -1206,7 +1206,6 @@ ACTION clashdomewld::receiverand(
                 
                             
                 //update daily token stats
-                
                 updateDailyStats(quantities[i],2);
                 updateDailyStats(quantities[i],0);
                 
@@ -2016,8 +2015,3 @@ uint32_t clashdomewld::epochToDay(time_t time){
 	uint32_t daytime=0;
 	return daytime=(tm_gmt->tm_year+1900)*10000+(tm_gmt->tm_mon+1)*100+(tm_gmt->tm_mday);
 }
-/* 
-symbol clashdomewld::getSymbol(a){
-    if(a==)
-
-}*/
