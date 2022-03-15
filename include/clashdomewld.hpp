@@ -539,7 +539,7 @@ private:
     const uint32_t PACKS_TEMPLATE_ID = 373360;
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
-    const uint64_t SOCIAL_CARBZ_PAYMENT = 10000000;
+    const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};
