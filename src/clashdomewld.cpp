@@ -801,6 +801,34 @@ void clashdomewld::settoolconfig(
     }
 }
 
+void clashdomewld::setcraft(
+    uint32_t template_id,
+    vector<asset> craft
+) {
+    require_auth(get_self());
+
+    auto tool_conf_itr = toolconfig.find(template_id);
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
+
+    toolconfig.modify(tool_conf_itr, CONTRACTN, [&](auto& config_row) {
+        config_row.craft = craft;
+    });
+}
+
+void clashdomewld::setreward(
+    uint32_t template_id,
+    vector<asset> rewards
+) {
+    require_auth(get_self());
+
+    auto tool_conf_itr = toolconfig.find(template_id);
+    check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
+
+    toolconfig.modify(tool_conf_itr, CONTRACTN, [&](auto& config_row) {
+        config_row.rewards = rewards;
+    });
+}
+
 void clashdomewld::setcooldown(
     uint32_t template_id,
     uint16_t cooldown
@@ -813,7 +841,6 @@ void clashdomewld::setcooldown(
     toolconfig.modify(tool_conf_itr, CONTRACTN, [&](auto& config_row) {
         config_row.cooldown = cooldown;
     });
-
 }
 
 void clashdomewld::setwalletconf(

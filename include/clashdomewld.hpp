@@ -110,6 +110,14 @@ public:
         vector<asset> craft,
         vector<asset> rewards
     );
+    ACTION setcraft(
+        uint32_t template_id,
+        vector<asset> craft
+    );
+    ACTION setreward(
+        uint32_t template_id,
+        vector<asset> rewards
+    );
     ACTION setcooldown(
         uint32_t template_id,
         uint16_t cooldown
