@@ -1857,6 +1857,16 @@ void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
         account.balances.at(posJigo).amount += PACK_JIGO_REWARD;
         account.balances.at(posCarbz).amount += PACK_CARBZ_REWARD;
     });
+    
+    //update Tokenomics
+    asset temp;
+    temp.symbol = JIGOWATTS_SYMBOL;
+    temp.amount=PACK_JIGO_REWARD;
+    updateDailyStats(temp,1);
+    temp.symbol= CARBZ_SYMBOL;
+    temp.amount=PACK_CARBZ_REWARD;
+    updateDailyStats(temp,1);
+
 }
 
 void clashdomewld::burnTokens(asset tokens, string memo_extra)

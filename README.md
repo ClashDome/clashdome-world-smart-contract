@@ -14,7 +14,7 @@ make
 # Update contract
 
 While testing in testnet:
-cleos -u https://testnet.waxsweden.org set contract clashdomedst ./clashdomewld -p clashdomewld@active
+cleos -u https://testnet.waxsweden.org set contract clashdomewld ./clashdomewld -p clashdomewld@active
 
 In production:
 cleos -u https://api.waxsweden.org set contract clashdomewld ./clashdomewld -p clashdomewld@active
