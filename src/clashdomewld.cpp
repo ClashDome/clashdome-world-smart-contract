@@ -292,23 +292,6 @@ void clashdomewld::withdrawgs(
     ).send();
 }
 
-void clashdomewld::craft(
-    name account, 
-    uint32_t template_id,
-    string type
-) {
-
-    require_auth(account);
-
-    if (type == TOOL_SCHEMA_NAME) {
-        craftTool(account, template_id);
-    } else if (type == SLOT_SCHEMA_NAME) {
-        craftSlot(account, template_id);
-    } else if (type == WALLET_SCHEMA_NAME) {
-        craftWallet(account, template_id);
-    }
-}
-
 void clashdomewld::repairbat(
     name account,
     uint64_t asset_id
@@ -397,43 +380,6 @@ void clashdomewld::repairint(
     updateDailyStats(update_stats_asset,0);
 }
 
-void clashdomewld::repairstamina(
-    name account
-) {
-
-    require_auth(account);
-
-    auto config_itr = config.begin();
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    auto citizen_itr = citiz.find(account.value);
-    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " doesn't has an citizen!");
-
-    auto citizconfig_itr = citizconfig.find(citizen_itr->type);
-
-    uint64_t pos = finder(ac_itr->balances, CARBZ_SYMBOL);
-    check(pos != -1, "Invalid symbol.");
-
-    check(ac_itr->stamina < citizconfig_itr->max_stamina, "You already have maximum stamina.");
-
-    uint16_t stamina = citizconfig_itr->max_stamina - ac_itr->stamina;
-    
-    check(ac_itr->balances[pos].amount * config_itr->carbz_to_stamina >= stamina * 10000, "Insufficient Carbz.");
-
-    accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-        acc.stamina += stamina;
-        acc.balances.at(pos).amount -= (stamina * 10000) / config_itr->carbz_to_stamina;
-    });
-
-    //update daily token stats
-    asset update_stats_asset;
-    update_stats_asset.amount=(stamina * 10000) / config_itr->carbz_to_stamina;
-    update_stats_asset.symbol=CARBZ_SYMBOL;
-    updateDailyStats(update_stats_asset,0);
-}
-
 void clashdomewld::editsocial(
     name account,
     string memo
@@ -446,32 +392,6 @@ void clashdomewld::editsocial(
     check(ac_itr != social.end(), "You need to pay before smartass!");
 
     parseSocialsMemo(account, memo);
-}
-
-void clashdomewld::repairaccbat(
-    name account
-) {
-
-    require_auth(account);
-
-    auto config_itr = config.begin();
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    uint64_t pos = finder(ac_itr->balances, JIGOWATTS_SYMBOL);
-    check(pos != -1, "Invalid symbol.");
-
-    check(ac_itr->battery < config_itr->max_battery, "You already have maximum battery.");
-
-    uint16_t battery = config_itr->max_battery - ac_itr->battery;
-    
-    check(ac_itr->balances[pos].amount * config_itr->jigowatts_to_battery >= battery * 10000, "Insufficient Jigowatts.");
-
-    accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-        acc.battery += battery;
-        acc.balances.at(pos).amount -= (battery * 10000) / config_itr->jigowatts_to_battery;
-    });
 }
 
 void clashdomewld::claimtool(
@@ -510,7 +430,7 @@ void clashdomewld::claimtool(
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.stamina -= tool_conf_itr->stamina_consumed;
-        acc.balances.at(pos).amount += claimed;
+        // acc.balances.at(pos).amount += claimed;
     });
 
     tools.modify(tool_itr, CONTRACTN, [&](auto& tool) {
@@ -518,6 +438,29 @@ void clashdomewld::claimtool(
         tool.integrity -= tool_conf_itr->integrity_consumed;
         tool.last_claim = timestamp;
     });
+
+    asset quantity;
+    quantity.amount = claimed;
+
+    if (tool_conf_itr->rewards[0].symbol == CARBZ_SYMBOL) {
+        quantity.symbol = CDCARBZ_SYMBOL;
+    } else if (tool_conf_itr->rewards[0].symbol == JIGOWATTS_SYMBOL) {
+        quantity.symbol = CDJIGO_SYMBOL;
+    }
+
+    action(
+        permission_level{get_self(), name("active")},
+        name("clashdometkn"),
+        name("transfer"),
+        std::make_tuple(
+            get_self(),
+            account,
+            quantity,
+            "Withdraw " + account.to_string()
+        )
+    ).send();
+
+
     //update daily token stats
     asset update_stats_asset;
     update_stats_asset.amount=claimed;
@@ -574,12 +517,29 @@ void clashdomewld::claim(
     uint64_t remaining_credits = unclaimed_credits - claimable_credits;
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-        acc.balances.at(pos).amount += claimable_credits;
+        // acc.balances.at(pos).amount += claimable_credits;
         acc.unclaimed_credits.amount = remaining_credits;
         acc.unclaimed_actions = unclaimed_actions;
         acc.stamina -= wallet_stamina_consumed;
         acc.battery -= wallet_battery_consumed;
     });
+
+    asset quantity;
+    
+    quantity.symbol = LUDIO_SYMBOL;
+    quantity.amount = claimable_credits;
+
+    action(
+        permission_level{get_self(), name("active")},
+        name("clashdometkn"),
+        name("transfer"),
+        std::make_tuple(
+            get_self(),
+            account,
+            quantity,
+            "Withdraw " + account.to_string()
+        )
+    ).send();
     
     //update daily token stats
     asset update_stats_asset;
@@ -595,53 +555,6 @@ void clashdomewld::addcredits(
 ) {
 
     require_auth(name("clashdomedll"));
-
-    check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    vector<string> new_actions = ac_itr->unclaimed_actions;
-
-    for (auto i = 0; i < unclaimed_actions.size(); i++) {
-        new_actions.push_back(unclaimed_actions.at(i));
-    }
-
-    auto config_itr = config.begin();
-
-    auto wallet_idx = wallets.get_index<name("byowner")>();
-    auto wallet_itr = wallet_idx.find(account.value);
-
-    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
-
-    if (wallet_itr == wallet_idx.end()) {
-        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
-            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-                account_itr.unclaimed_credits.amount = max_amount;
-                account_itr.unclaimed_actions = new_actions;
-            });
-        } else {
-            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-                account_itr.unclaimed_credits.amount += credits.amount;
-                account_itr.unclaimed_actions = new_actions;
-            });
-        }
-    } else {
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-            account_itr.unclaimed_credits.amount += credits.amount;
-            account_itr.unclaimed_actions = new_actions;
-        });
-    }
-}
-
-// TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
-void clashdomewld::addcredits2(
-    name account,
-    asset credits,
-    vector<string> unclaimed_actions
-) {
-
-    require_auth(name("clashdomedls"));
 
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
@@ -1377,7 +1290,93 @@ void clashdomewld::receive_token_transfer(
         return;
     }
 
-    if(memo == "deposit") {
+    if (memo.find("repair_bat") != string::npos) {
+
+        auto config_itr = config.begin();
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint64_t asset_id = stoull(d2);
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        auto tool_itr = tools.find(asset_id);
+        check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
+        
+        check(tool_itr->owner == from, "Account " + from.to_string() + " isn't the owner of asset " + to_string(asset_id));
+
+        auto tool_conf_itr = toolconfig.find(tool_itr->template_id);
+        check(tool_conf_itr != toolconfig.end(), "Tool with template id " + to_string(tool_itr->template_id) + " doesn't exist!");
+
+        check(quantity.symbol == CDJIGO_SYMBOL, "Invalid symbol.");
+
+        uint16_t battery_necessary = tool_itr->max_battery - tool_itr->battery;
+
+        check(battery_necessary > 0, "No need to repair Battery.");
+
+        check(quantity.amount * config_itr->jigowatts_to_battery == battery_necessary * 10000, "Inavlid Jigowatts amount.");
+
+        tools.modify(tool_itr, CONTRACTN, [&](auto& tool) {
+            tool.battery += battery_necessary;
+        });
+
+        //update daily token stats
+        asset update_stats_asset;
+        update_stats_asset.amount=(battery_necessary * 10000) / config_itr->jigowatts_to_battery;
+        update_stats_asset.symbol=JIGOWATTS_SYMBOL;
+        updateDailyStats(update_stats_asset,0);
+
+    } else if (memo == "repair_acc_bat") {
+
+        auto config_itr = config.begin();
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        check(quantity.symbol == CDJIGO_SYMBOL, "Invalid symbol.");
+
+        check(ac_itr->battery < config_itr->max_battery, "You already have maximum battery.");
+
+        uint16_t battery = config_itr->max_battery - ac_itr->battery;
+        
+        check(quantity.amount * config_itr->jigowatts_to_battery == battery * 10000, "Invalid Jigowatts amount.");
+
+        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+            acc.battery += battery;
+        });
+    } else if(memo == "repair_stamina") {
+        auto config_itr = config.begin();
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        auto citizen_itr = citiz.find(from.value);
+        check(citizen_itr != citiz.end(), "Account with name " + from.to_string() + " doesn't has an citizen!");
+
+        auto citizconfig_itr = citizconfig.find(citizen_itr->type);
+
+        check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid symbol.");
+
+        check(ac_itr->stamina < citizconfig_itr->max_stamina, "You already have maximum stamina.");
+
+        uint16_t stamina = citizconfig_itr->max_stamina - ac_itr->stamina;
+        
+        check(quantity.amount * config_itr->carbz_to_stamina == stamina * 10000, "Invalid Carbz amount.");
+
+        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+            acc.stamina += stamina;
+        });
+
+        //update daily token stats
+        asset update_stats_asset;
+        update_stats_asset.amount=(stamina * 10000) / config_itr->carbz_to_stamina;
+        update_stats_asset.symbol=CARBZ_SYMBOL;
+        updateDailyStats(update_stats_asset,0);
+
+    } else if(memo == "deposit") {
 
         auto ac_itr = accounts.find(from.value);
         check(ac_itr != accounts.end(), "Stake a citizen first!!");
@@ -1429,6 +1428,164 @@ void clashdomewld::receive_token_transfer(
     }
 }
 
+
+void clashdomewld::receive_tokens_transfer(
+    name from,
+    name to,
+    vector<asset> quantities,
+    string memo
+) {
+
+    if (to != get_self()) {
+        return;
+    }
+
+    if(memo.find("craft_tool") != string::npos) {
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint32_t template_id = (uint32_t) stoull(d2);
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        auto citizen_itr = citiz.find(from.value);
+        check(citizen_itr != citiz.end(), "Account with name " + from.to_string() + " has no citizen staked!");
+
+        auto tool_itr = toolconfig.find(template_id);
+        check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
+
+        // check all necesary materials && remove materials
+
+        for(auto i = 0; i < tool_itr->craft.size(); i++) {
+
+            uint64_t pos = finder(quantities, tokenConversion(tool_itr->craft[i].symbol));
+
+            check(pos != -1, "Insufficient materials.");
+            check(quantities[pos].amount >= tool_itr->craft[i].amount, "Insufficient materials.");
+
+            burnTokens(tool_itr->craft[i], "tool with template_id " + to_string(template_id) + ".");
+
+            //update daily token stats
+            updateDailyStats(tool_itr->craft[i],0);
+        }
+
+        // mint and send tool
+        action (
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("mintasset"),
+            std::make_tuple(
+                get_self(),
+                name(COLLECTION_NAME),
+                name(TOOL_SCHEMA_NAME),
+                template_id,
+                from,
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (vector <asset>) {}
+            )
+        ).send();
+    } else if (memo.find("craft_slot") != string::npos) {
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint32_t template_id = (uint32_t) stoull(d2);
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        auto citizen_itr = citiz.find(from.value);
+        check(citizen_itr != citiz.end(), "Account with name " + from.to_string() + " has no citizen staked!");
+
+        auto slot_itr = slotsconfig.find(template_id);
+        check(slot_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exist!");
+
+        // check all necesary materials && remove materials
+
+        for(auto i = 0; i < slot_itr->craft.size(); i++) {
+
+            uint64_t pos = finder(quantities, tokenConversion(slot_itr->craft[i].symbol));
+
+            check(pos != -1, "Insufficient materials.");
+            check(quantities[pos].amount >= slot_itr->craft[i].amount, "Insufficient materials.");
+
+            burnTokens(slot_itr->craft[i], "slot with template_id " + to_string(template_id) + ".");
+            
+            //update daily token stats
+            updateDailyStats(slot_itr->craft[i],0);
+        }
+
+        // mint and send slot
+        action (
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("mintasset"),
+            std::make_tuple(
+                get_self(),
+                name(COLLECTION_NAME),
+                name(SLOT_SCHEMA_NAME),
+                template_id,
+                from,
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (vector <asset>) {}
+            )
+        ).send();
+    } else if (memo.find("craft_wallet") != string::npos) {
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint32_t template_id = (uint32_t) stoull(d2);
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        auto citizen_itr = citiz.find(from.value);
+        check(citizen_itr != citiz.end(), "Account with name " + from.to_string() + " has no citizen staked!");
+
+        auto wallet_itr = walletconfig.find(template_id);
+        check(wallet_itr != walletconfig.end(), "Wallet with template id " + to_string(template_id) + " doesn't exist!");
+
+        // check all necesary materials && remove materials
+
+        for(auto i = 0; i < wallet_itr->craft.size(); i++) {
+
+            uint64_t pos = finder(quantities, tokenConversion(wallet_itr->craft[i].symbol));
+
+            check(pos != -1, "Insufficient materials.");
+            check(quantities[pos].amount >= wallet_itr->craft[i].amount, "Insufficient materials.");
+
+            burnTokens(wallet_itr->craft[i], "wallet with template_id " + to_string(template_id) + ".");
+            
+            //update daily token stats
+            updateDailyStats(wallet_itr->craft[i],0);
+        }
+
+        // mint and send slot
+        action (
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("mintasset"),
+            std::make_tuple(
+                get_self(),
+                name(COLLECTION_NAME),
+                name(WALLET_SCHEMA_NAME),
+                template_id,
+                from,
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (vector <asset>) {}
+            )
+        ).send();
+    }
+}
 
 uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
 {
@@ -1604,55 +1761,6 @@ void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
     });
 }
 
-void clashdomewld::craftTool(name account, uint32_t template_id)
-{
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    auto citizen_itr = citiz.find(account.value);
-    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
-
-    auto tool_itr = toolconfig.find(template_id);
-    check(tool_itr != toolconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
-
-    // check all necesary materials && remove materials
-
-    for(auto i = 0; i < tool_itr->craft.size(); i++) {
-
-        uint64_t pos = finder(ac_itr->balances, tool_itr->craft[i].symbol);
-
-        check(pos != -1, "Insufficient materials.");
-        check(ac_itr->balances[pos].amount >= tool_itr->craft[i].amount, "Insufficient materials.");
-
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-            acc.balances.at(pos) -= tool_itr->craft[i];
-        });
-
-        burnTokens(tool_itr->craft[i], "tool with template_id " + to_string(template_id) + ".");
-
-        //update daily token stats
-        updateDailyStats(tool_itr->craft[i],0);
-    }
-
-    // mint and send tool
-    action (
-        permission_level{get_self(), name("active")},
-        atomicassets::ATOMICASSETS_ACCOUNT,
-        name("mintasset"),
-        std::make_tuple(
-            get_self(),
-            name(COLLECTION_NAME),
-            name(TOOL_SCHEMA_NAME),
-            template_id,
-            account,
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (vector <asset>) {}
-        )
-    ).send();
-}
-
 void clashdomewld::stakeSlot(uint64_t asset_id, name from, name to, string type)
 {
 
@@ -1694,55 +1802,6 @@ void clashdomewld::stakeSlot(uint64_t asset_id, name from, name to, string type)
     });
 }
 
-void clashdomewld::craftSlot(name account, uint32_t template_id)
-{
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    auto citizen_itr = citiz.find(account.value);
-    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
-
-    auto slot_itr = slotsconfig.find(template_id);
-    check(slot_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exist!");
-
-    // check all necesary materials && remove materials
-
-    for(auto i = 0; i < slot_itr->craft.size(); i++) {
-
-        uint64_t pos = finder(ac_itr->balances, slot_itr->craft[i].symbol);
-
-        check(pos != -1, "Insufficient materials.");
-        check(ac_itr->balances[pos].amount >= slot_itr->craft[i].amount, "Insufficient materials.");
-
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-            acc.balances.at(pos) -= slot_itr->craft[i];
-        });
-
-        burnTokens(slot_itr->craft[i], "slot with template_id " + to_string(template_id) + ".");
-        
-        //update daily token stats
-        updateDailyStats(slot_itr->craft[i],0);
-    }
-
-    // mint and send slot
-    action (
-        permission_level{get_self(), name("active")},
-        atomicassets::ATOMICASSETS_ACCOUNT,
-        name("mintasset"),
-        std::make_tuple(
-            get_self(),
-            name(COLLECTION_NAME),
-            name(SLOT_SCHEMA_NAME),
-            template_id,
-            account,
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (vector <asset>) {}
-        )
-    ).send();
-}
-
 void clashdomewld::stakeWallet(uint64_t asset_id, name from, name to)
 {
 
@@ -1769,55 +1828,6 @@ void clashdomewld::stakeWallet(uint64_t asset_id, name from, name to)
         wallet.owner = from;
         wallet.template_id = asset_itr->template_id;
     });
-}
-
-void clashdomewld::craftWallet(name account, uint32_t template_id)
-{
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    auto citizen_itr = citiz.find(account.value);
-    check(citizen_itr != citiz.end(), "Account with name " + account.to_string() + " has no citizen staked!");
-
-    auto wallet_itr = walletconfig.find(template_id);
-    check(wallet_itr != walletconfig.end(), "Wallet with template id " + to_string(template_id) + " doesn't exist!");
-
-    // check all necesary materials && remove materials
-
-    for(auto i = 0; i < wallet_itr->craft.size(); i++) {
-
-        uint64_t pos = finder(ac_itr->balances, wallet_itr->craft[i].symbol);
-
-        check(pos != -1, "Insufficient materials.");
-        check(ac_itr->balances[pos].amount >= wallet_itr->craft[i].amount, "Insufficient materials.");
-
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-            acc.balances.at(pos) -= wallet_itr->craft[i];
-        });
-
-        burnTokens(wallet_itr->craft[i], "wallet with template_id " + to_string(template_id) + ".");
-        
-        //update daily token stats
-        updateDailyStats(wallet_itr->craft[i],0);
-    }
-
-    // mint and send slot
-    action (
-        permission_level{get_self(), name("active")},
-        atomicassets::ATOMICASSETS_ACCOUNT,
-        name("mintasset"),
-        std::make_tuple(
-            get_self(),
-            name(COLLECTION_NAME),
-            name(WALLET_SCHEMA_NAME),
-            template_id,
-            account,
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (atomicassets::ATTRIBUTE_MAP) {},
-            (vector <asset>) {}
-        )
-    ).send();
 }
 
 void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
@@ -2047,6 +2057,20 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         }
     }
 } 
+
+symbol clashdomewld::tokenConversion(symbol s1){
+
+    if (s1 == CREDITS_SYMBOL) {
+        return LUDIO_SYMBOL;
+    } else if (s1 == CARBZ_SYMBOL) {
+        return CDCARBZ_SYMBOL;
+    } else if (s1 == JIGOWATTS_SYMBOL) {
+        return CDJIGO_SYMBOL;
+    }
+
+    return s1;
+}
+
 uint32_t clashdomewld::epochToDay(time_t time){
     tm *tm_gmt = gmtime(&time);
 	uint32_t daytime=0;

@@ -37,11 +37,6 @@ public:
         vector<uint8_t> choices,
         uint64_t timestamp
     );
-    ACTION craft(
-        name account, 
-        uint32_t template_id,
-        string type
-    );
     ACTION claimtool(
         name account,
         uint64_t asset_id
@@ -49,14 +44,8 @@ public:
     ACTION claim(
         name account
     );
-    ACTION addcredits(
-        name account,
-        asset credits,
-        vector<string> unclaimed_actions
-    );
 
-    // TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
-    ACTION addcredits2(
+    ACTION addcredits(
         name account,
         asset credits,
         vector<string> unclaimed_actions
@@ -66,15 +55,9 @@ public:
         name account, 
         uint64_t asset_id
     );
-    ACTION repairaccbat(
-        name account
-    );
     ACTION repairint(
         name account, 
         uint64_t asset_id
-    );
-    ACTION repairstamina(
-        name account
     );
     ACTION editsocial(
         name account,
@@ -204,6 +187,13 @@ public:
         name from,
         name to,
         asset quantity,
+        string memo
+    );
+
+    [[eosio::on_notify("clashdometkn::transfers")]] void receive_tokens_transfer(
+        name from,
+        name to,
+        vector <asset> quantities,
         string memo
     );
 
@@ -523,14 +513,12 @@ private:
     void stakeTool(uint64_t asset_ids, name from, name to);
     void stakeWallet(uint64_t asset_ids, name from, name to);
     void stakeSlot(uint64_t asset_ids, name from, name to, string type);
-    void craftTool(name account, uint32_t template_id);
-    void craftSlot(name account, uint32_t template_id);
-    void craftWallet(name account, uint32_t template_id);
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
+    symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
 
     // CONSTANTS
