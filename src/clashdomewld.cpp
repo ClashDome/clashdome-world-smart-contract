@@ -964,25 +964,11 @@ ACTION clashdomewld::receiverand(
 
         for (auto i = 0; i < quantities.size(); i++) {
             if (quantities[i].amount > 0) {
-                uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
-                check(pos != -1, "Invalid symbol.");
-                check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
-
-                accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-                    acc.balances.at(pos) -= quantities[i];
-                });
 
                 asset quantity2;
             
                 quantity2.amount = quantities[i].amount * 2;
-
-                if (quantities[i].symbol == CREDITS_SYMBOL) {
-                    quantity2.symbol = LUDIO_SYMBOL;
-                } else if (quantities[i].symbol == CARBZ_SYMBOL) {
-                    quantity2.symbol = CDCARBZ_SYMBOL;
-                } else if (quantities[i].symbol == JIGOWATTS_SYMBOL) {
-                    quantity2.symbol = CDJIGO_SYMBOL;
-                }
+                quantity2.symbol = quantities[i].symbol;
 
                 action(
                     permission_level{get_self(), name("active")},
@@ -996,6 +982,15 @@ ACTION clashdomewld::receiverand(
                     )
                 ).send();
                 //update daily token stats
+
+                if (quantities[i].symbol == CDJIGO_SYMBOL) {
+                    quantities[i].symbol = JIGOWATTS_SYMBOL;
+                } else if (quantities[i].symbol == LUDIO_SYMBOL) {
+                    quantities[i].symbol = CREDITS_SYMBOL;
+                } else if (quantities[i].symbol == CDCARBZ_SYMBOL) {
+                    quantities[i].symbol = CARBZ_SYMBOL;
+                }
+
                 updateDailyStats(quantities[i],1);
 
             }
@@ -1007,27 +1002,7 @@ ACTION clashdomewld::receiverand(
 
         for (auto i = 0; i < quantities.size(); i++) {
             if (quantities[i].amount > 0) {
-                uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
-                check(pos != -1, "Invalid symbol.");
-                check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
 
-                accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-                    acc.balances.at(pos) -= quantities[i];
-                });
-                
-                            
-                //update daily token stats
-                updateDailyStats(quantities[i],2);
-                updateDailyStats(quantities[i],0);
-                
-                //burn tokens 
-                if (quantities[i].symbol == JIGOWATTS_SYMBOL) {
-                    quantities[i].symbol = CDJIGO_SYMBOL;
-                } else if (quantities[i].symbol == CREDITS_SYMBOL) {
-                    quantities[i].symbol = LUDIO_SYMBOL;
-                } else if (quantities[i].symbol == CARBZ_SYMBOL) {
-                    quantities[i].symbol = CDCARBZ_SYMBOL;
-                }
                 action (
                     permission_level{get_self(), name("active")},
                     name("clashdometkn"),
@@ -1038,8 +1013,48 @@ ACTION clashdomewld::receiverand(
                     )
                 ).send();
 
+                if (quantities[i].symbol == CDJIGO_SYMBOL) {
+                    quantities[i].symbol = JIGOWATTS_SYMBOL;
+                } else if (quantities[i].symbol == LUDIO_SYMBOL) {
+                    quantities[i].symbol = CREDITS_SYMBOL;
+                } else if (quantities[i].symbol == CDCARBZ_SYMBOL) {
+                    quantities[i].symbol = CARBZ_SYMBOL;
+                }
+
+                //update daily token stats
+                updateDailyStats(quantities[i],2);
+                updateDailyStats(quantities[i],0);
+
             }
         }
+    } else {
+
+        for (auto i = 0; i < quantities.size(); i++) {
+            if (quantities[i].amount > 0) {
+
+                action(
+                    permission_level{get_self(), name("active")},
+                    name("clashdometkn"),
+                    name("transfer"),
+                    std::make_tuple(
+                        get_self(),
+                        account,
+                        quantities[i],
+                        "Gigaswap " + account.to_string()
+                    )
+                ).send();
+                //update daily token stats
+
+                if (quantities[i].symbol == CDJIGO_SYMBOL) {
+                    quantities[i].symbol = JIGOWATTS_SYMBOL;
+                } else if (quantities[i].symbol == LUDIO_SYMBOL) {
+                    quantities[i].symbol = CREDITS_SYMBOL;
+                } else if (quantities[i].symbol == CDCARBZ_SYMBOL) {
+                    quantities[i].symbol = CARBZ_SYMBOL;
+                }
+            }
+        }
+
     }
 
     gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
@@ -1307,8 +1322,106 @@ void clashdomewld::receive_tokens_transfer(
     if (to != get_self()) {
         return;
     }
+    if(memo.find("gigaswap") != string::npos) {
 
-    if(memo.find("craft_tool") != string::npos) {
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+
+        string d2 = memo.substr(fb + 1);
+
+        const size_t fb2 = d2.find(":");
+
+        string str_timestamp = d2.substr(0, fb2);
+        string str_choices = d2.substr(fb2 + 1);
+
+        uint64_t timestamp = (uint64_t) stoull(str_timestamp);
+        uint64_t str_length = str_choices.length();
+
+        vector<uint8_t> choices = {0,0,0};
+
+        uint64_t j = 0, i;
+
+        for (i = 0; str_choices[i] != '\0'; i++) {
+
+            if (str_choices[i] == ','){
+                j++;
+            }
+            else {
+                choices[j] = choices[j] * 10 + (str_choices[i] - 48);
+            }
+        }
+
+        auto ac_itr = accounts.find(from.value);
+        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+
+        check(choices.size() == 3, "Invalid choices length.");
+
+        for (auto i = 0; i < choices.size(); i++) {
+            check(choices[i] >= 0 && choices[i] <= 2, "Invalid choices. Must be a number between 0 and 2.");
+        }
+
+        for (auto i = 0; i < quantities.size(); i++) {
+            if (quantities[i].amount > 0) {
+                check(quantities[i].amount <= 30000000, "Sorry. GigaSwap is limited to 3,000 tokens");
+            }
+        }
+
+        auto size = transaction_size();
+        char buf[size];
+
+        auto read = read_transaction(buf, size);
+        check(size == read, "read_transaction() has failed.");
+
+        checksum256 tx_id = eosio::sha256(buf, read);
+
+        uint64_t signing_value;
+
+        memcpy(&signing_value, tx_id.data(), sizeof(signing_value));
+
+        auto gs_itr = gigaswap.find(from.value);
+
+        vector<uint8_t> opponent_choices;
+
+        if (gs_itr == gigaswap.end()) {
+
+            gigaswap.emplace(CONTRACTN, [&](auto& swap) {
+                swap.account = from;
+                swap.timestamp = timestamp;
+                swap.choices = choices;
+                swap.quantities = quantities;
+                swap.status = PENDING;
+                swap.opponent = name("");
+                swap.opponent_choices = opponent_choices;
+                swap.winner = name("");
+            });
+
+        } else {
+            
+            check(gs_itr->status == DONE, "You already have a pending Gigaswap.");
+
+            gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
+                swap.timestamp = timestamp;
+                swap.choices = choices;
+                swap.quantities = quantities;
+                swap.status = PENDING;
+                swap.opponent = name("");
+                swap.opponent_choices = opponent_choices;
+                swap.winner = name("");
+            });
+        }
+
+        action(
+            permission_level{get_self(), name("active")},
+            name("orng.wax"),
+            name("requestrand"),
+            std::make_tuple(
+                from.value, //used as assoc id
+                signing_value,
+                get_self()
+            )
+        ).send();
+
+    } else if(memo.find("craft_tool") != string::npos) {
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
