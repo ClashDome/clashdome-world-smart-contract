@@ -165,7 +165,7 @@ void clashdomewld::withdraw(
     vector<asset> quantities
 ) {
 
-    require_auth(get_self());
+    require_auth(name("packsopenerx"));
 
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
@@ -1044,6 +1044,7 @@ void clashdomewld::receive_asset_transfer(
     string memo
 ) {
 
+
     if (to != get_self()) {
         return;
     }
@@ -1229,6 +1230,7 @@ void clashdomewld::receive_tokens_transfer(
     vector<asset> quantities,
     string memo
 ) {
+
 
     if (to != get_self()) {
         return;
