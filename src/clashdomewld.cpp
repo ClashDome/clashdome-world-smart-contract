@@ -159,6 +159,7 @@ void clashdomewld::unstake(
     }
 }
 
+// TODO: remove this after merge
 void clashdomewld::withdraw(
     name account,
     vector<asset> quantities
@@ -1113,7 +1114,7 @@ void clashdomewld::receive_token_transfer(
 
         check(integrity_necessary > 0, "No need to repair Integrity.");
         
-        check(quantity.amount * config_itr->credits_to_integrity >= integrity_necessary * 10000, "Invalid Credits amount.");
+        check(quantity.amount * config_itr->credits_to_integrity == integrity_necessary * 10000, "Invalid Credits amount.");
 
         tools.modify(tool_itr, CONTRACTN, [&](auto& tool) {
             tool.integrity += integrity_necessary;
