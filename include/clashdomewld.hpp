@@ -31,17 +31,6 @@ public:
         name account,
         vector<asset> quantities
     );
-    ACTION withdrawgs(
-        name account,
-        vector<asset> quantities,
-        vector<uint8_t> choices,
-        uint64_t timestamp
-    );
-    ACTION craft(
-        name account, 
-        uint32_t template_id,
-        string type
-    );
     ACTION claimtool(
         name account,
         uint64_t asset_id
@@ -49,40 +38,15 @@ public:
     ACTION claim(
         name account
     );
+
     ACTION addcredits(
         name account,
         asset credits,
         vector<string> unclaimed_actions
     );
-
-    // TODO: REMOVE THIS FUNCTION ONCE CLASHDOMEDLL IS THE ONLY CONTRACT HANDLING DUELS
-    ACTION addcredits2(
-        name account,
-        asset credits,
-        vector<string> unclaimed_actions
-    );
-
-    ACTION repairbat(
-        name account, 
-        uint64_t asset_id
-    );
-    ACTION repairaccbat(
-        name account
-    );
-    ACTION repairint(
-        name account, 
-        uint64_t asset_id
-    );
-    ACTION repairstamina(
-        name account
-    );
     ACTION editsocial(
         name account,
         string memo
-    );
-    ACTION addmaterials(
-        name account,
-        vector<asset> quantities
     );
     ACTION setconfig(
         uint16_t init_battery,
@@ -162,7 +126,6 @@ public:
         uint16_t jigowatts_slots,
         uint16_t carbz_free_slots,
         uint16_t jigowatts_free_slots,
-        vector<asset> balances,
         asset unclaimed_credits,
         vector<string> unclaimed_actions
     );
@@ -204,6 +167,13 @@ public:
         name from,
         name to,
         asset quantity,
+        string memo
+    );
+
+    [[eosio::on_notify("clashdometkn::transfers")]] void receive_tokens_transfer(
+        name from,
+        name to,
+        vector <asset> quantities,
         string memo
     );
 
@@ -523,14 +493,12 @@ private:
     void stakeTool(uint64_t asset_ids, name from, name to);
     void stakeWallet(uint64_t asset_ids, name from, name to);
     void stakeSlot(uint64_t asset_ids, name from, name to, string type);
-    void craftTool(name account, uint32_t template_id);
-    void craftSlot(name account, uint32_t template_id);
-    void craftWallet(name account, uint32_t template_id);
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
+    symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
 
     // CONSTANTS
@@ -545,6 +513,7 @@ private:
     const string CITIZEN_SCHEMA_NAME = "citizen";
     const string PACKS_SCHEMA_NAME = "packs";
     const uint32_t PACKS_TEMPLATE_ID = 373360;
+    // const uint32_t PACKS_TEMPLATE_ID = 403495;
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
