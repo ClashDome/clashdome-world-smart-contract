@@ -209,89 +209,6 @@ void clashdomewld::withdraw(
     }
 }
 
-void clashdomewld::withdrawgs(
-    name account,
-    vector<asset> quantities,
-    vector<uint8_t> choices,
-    uint64_t timestamp
-) {
-
-    require_auth(account);
-
-    auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
-
-    check(choices.size() == 3, "Invalid choices length.");
-
-    for (auto i = 0; i < choices.size(); i++) {
-        check(choices[i] >= 0 && choices[i] <= 2, "Invalid choices. Must be a number between 0 and 2.");
-    }
-
-    for (auto i = 0; i < quantities.size(); i++) {
-        if (quantities[i].amount > 0) {
-            uint64_t pos = finder(ac_itr->balances, quantities[i].symbol);
-            check(pos != -1, "Invalid symbol.");
-            check(ac_itr->balances.at(pos).amount >= quantities[i].amount, "Invalid amount.");
-            check(quantities[i].amount <= 30000000, "Sorry. GigaSwap is limited to 3,000 tokens");
-        }
-    }
-
-    auto size = transaction_size();
-    char buf[size];
-
-    auto read = read_transaction(buf, size);
-    check(size == read, "read_transaction() has failed.");
-
-    checksum256 tx_id = eosio::sha256(buf, read);
-
-    uint64_t signing_value;
-
-    memcpy(&signing_value, tx_id.data(), sizeof(signing_value));
-
-    auto gs_itr = gigaswap.find(account.value);
-
-    vector<uint8_t> opponent_choices;
-
-    if (gs_itr == gigaswap.end()) {
-
-        gigaswap.emplace(CONTRACTN, [&](auto& swap) {
-            swap.account = account;
-            swap.timestamp = timestamp;
-            swap.choices = choices;
-            swap.quantities = quantities;
-            swap.status = PENDING;
-            swap.opponent = name("");
-            swap.opponent_choices = opponent_choices;
-            swap.winner = name("");
-        });
-
-    } else {
-        
-        check(gs_itr->status == DONE, "You already have a pending Gigaswap.");
-
-        gigaswap.modify(gs_itr, CONTRACTN, [&](auto& swap) {
-            swap.timestamp = timestamp;
-            swap.choices = choices;
-            swap.quantities = quantities;
-            swap.status = PENDING;
-            swap.opponent = name("");
-            swap.opponent_choices = opponent_choices;
-            swap.winner = name("");
-        });
-    }
-
-    action(
-        permission_level{get_self(), name("active")},
-        name("orng.wax"),
-        name("requestrand"),
-        std::make_tuple(
-            account.value, //used as assoc id
-            signing_value,
-            get_self()
-        )
-    ).send();
-}
-
 void clashdomewld::editsocial(
     name account,
     string memo
@@ -334,15 +251,12 @@ void clashdomewld::claimtool(
     check(tool_itr->battery - tool_conf_itr->battery_consumed >= 0, "Insufficient battery.");
     check(tool_itr->integrity - tool_conf_itr->integrity_consumed >= 0, "Insufficient integrity.");
 
-    // uint64_t pos = finder(ac_itr->balances, tool_conf_itr->rewards[0].symbol);
-
     auto citizen_config_itr = citizconfig.find(citizen_itr->type);
 
     uint64_t claimed = (tool_conf_itr->rewards[0].amount * (100 + citizen_config_itr->claim_extra)) / 100;
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.stamina -= tool_conf_itr->stamina_consumed;
-        // acc.balances.at(pos).amount += claimed;
     });
 
     tools.modify(tool_itr, CONTRACTN, [&](auto& tool) {
@@ -396,7 +310,6 @@ void clashdomewld::claim(
     check(ac_itr->unclaimed_credits.amount > 0, "Nothing to claim.");
 
     uint64_t unclaimed_credits = ac_itr->unclaimed_credits.amount;
-    // uint64_t pos = finder(ac_itr->balances, ac_itr->unclaimed_credits.symbol);
     vector<string> unclaimed_actions;
 
     auto config_itr = config.begin();
@@ -429,7 +342,6 @@ void clashdomewld::claim(
     uint64_t remaining_credits = unclaimed_credits - claimable_credits;
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-        // acc.balances.at(pos).amount += claimable_credits;
         acc.unclaimed_credits.amount = remaining_credits;
         acc.unclaimed_actions = unclaimed_actions;
         acc.stamina -= wallet_stamina_consumed;
@@ -833,7 +745,6 @@ void clashdomewld::setaccvalues(
     uint16_t jigowatts_slots,
     uint16_t carbz_free_slots,
     uint16_t jigowatts_free_slots,
-    vector<asset> balances,
     asset unclaimed_credits,
     vector<string> unclaimed_actions
 ) {
@@ -849,7 +760,6 @@ void clashdomewld::setaccvalues(
         acc.jigowatts_slots = jigowatts_slots;
         acc.carbz_free_slots = carbz_free_slots;
         acc.jigowatts_free_slots = jigowatts_free_slots;
-        acc.balances = balances;
         acc.unclaimed_credits = unclaimed_credits;
         acc.unclaimed_actions = unclaimed_actions;
     });

@@ -31,12 +31,6 @@ public:
         name account,
         vector<asset> quantities
     );
-    ACTION withdrawgs(
-        name account,
-        vector<asset> quantities,
-        vector<uint8_t> choices,
-        uint64_t timestamp
-    );
     ACTION claimtool(
         name account,
         uint64_t asset_id
@@ -132,7 +126,6 @@ public:
         uint16_t jigowatts_slots,
         uint16_t carbz_free_slots,
         uint16_t jigowatts_free_slots,
-        vector<asset> balances,
         asset unclaimed_credits,
         vector<string> unclaimed_actions
     );
