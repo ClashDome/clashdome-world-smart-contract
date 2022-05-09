@@ -22,6 +22,10 @@ public:
 
     using contract::contract;
 
+    ACTION staketrial(
+        name account,
+        uint64_t asset_id
+    );
     ACTION unstake(
         name account,
         uint64_t asset_id,
@@ -229,6 +233,21 @@ private:
     typedef multi_index<name("accounts"), accounts_s> accounts_t;
 
     accounts_t accounts = accounts_t(get_self(), get_self().value); 
+
+    // trials
+    TABLE trials_s {
+
+        name account;
+        uint64_t asset_id;
+        uint16_t current_games;
+        asset credits;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("trials"), trials_s> trials_t;
+
+    trials_t trials = trials_t(get_self(), get_self().value); 
 
     // config
     TABLE config_s {
@@ -512,8 +531,15 @@ private:
     const string WALLET_SCHEMA_NAME = "wallet";
     const string CITIZEN_SCHEMA_NAME = "citizen";
     const string PACKS_SCHEMA_NAME = "packs";
-    const uint32_t PACKS_TEMPLATE_ID = 373360;
-    // const uint32_t PACKS_TEMPLATE_ID = 403495;
+
+    // mainnet
+    // const uint32_t PACKS_TEMPLATE_ID = 373360;
+    // const uint32_t TRIAL_TEMPLATE_ID = 417258;
+
+    // testnet
+    const uint32_t PACKS_TEMPLATE_ID = 403495;
+    const uint32_t TRIAL_TEMPLATE_ID = 417258;
+
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;

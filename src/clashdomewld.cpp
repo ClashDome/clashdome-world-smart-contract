@@ -1,5 +1,40 @@
 #include <clashdomewld.hpp>
 
+void clashdomewld::staketrial(
+    name account,
+    uint64_t asset_id
+) {
+
+    require_auth(account);
+
+    auto tr_itr = trials.find(account.value);
+    check(tr_itr == trials.end(), "Trial with name " + account.to_string() + " already exists!");
+
+    // si ya se ha tenido una cuenta antes no se puede utilizar un trial
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already exists!");
+
+    atomicassets::assets_t player_assets = atomicassets::get_assets(account);
+    auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
+
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
+    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
+    check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + SLOT_SCHEMA_NAME);
+    check(asset_itr->template_id == TRIAL_TEMPLATE_ID, "NFT doesn't correspond to template id " + to_string(TRIAL_TEMPLATE_ID));
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+
+    trials.emplace(CONTRACTN, [&](auto& trial) {
+        trial.account = account;
+        trial.asset_id = asset_id;
+        trial.current_games = 0;
+        trial.credits = credits;
+    });
+
+}
+
 void clashdomewld::unstake(
     name account,
     uint64_t asset_id,
@@ -1511,6 +1546,7 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
     // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION
     check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
     check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + CITIZEN_SCHEMA_NAME);
+    check(asset_itr->template_id != TRIAL_TEMPLATE_ID, "You can't stake a trial citizen.");
 
     atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
     auto schema_itr = collection_schemas.find(name(CITIZEN_SCHEMA_NAME).value);
