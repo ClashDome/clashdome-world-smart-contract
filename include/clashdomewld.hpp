@@ -239,8 +239,9 @@ private:
 
         name account;
         uint64_t asset_id;
-        uint16_t current_games;
         asset credits;
+        vector<string> unclaimed_actions;
+        bool full;
         
         uint64_t primary_key() const { return account.value; }
     };
@@ -543,6 +544,7 @@ private:
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
+    const uint64_t TRIAL_MAX_UNCLAIMED = 5000000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};

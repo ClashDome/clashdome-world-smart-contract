@@ -29,8 +29,8 @@ void clashdomewld::staketrial(
     trials.emplace(CONTRACTN, [&](auto& trial) {
         trial.account = account;
         trial.asset_id = asset_id;
-        trial.current_games = 0;
         trial.credits = credits;
+        trial.full = false;
     });
 
 }
@@ -419,27 +419,34 @@ void clashdomewld::addcredits(
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    vector<string> new_actions = ac_itr->unclaimed_actions;
+    if (ac_itr != accounts.end()) {
 
-    for (auto i = 0; i < unclaimed_actions.size(); i++) {
-        new_actions.push_back(unclaimed_actions.at(i));
-    }
+        vector<string> new_actions = ac_itr->unclaimed_actions;
 
-    auto config_itr = config.begin();
+        for (auto i = 0; i < unclaimed_actions.size(); i++) {
+            new_actions.push_back(unclaimed_actions.at(i));
+        }
 
-    auto wallet_idx = wallets.get_index<name("byowner")>();
-    auto wallet_itr = wallet_idx.find(account.value);
+        auto config_itr = config.begin();
 
-    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+        auto wallet_idx = wallets.get_index<name("byowner")>();
+        auto wallet_itr = wallet_idx.find(account.value);
 
-    if (wallet_itr == wallet_idx.end()) {
-        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
-            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-                account_itr.unclaimed_credits.amount = max_amount;
-                account_itr.unclaimed_actions = new_actions;
-            });
+        uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+        if (wallet_itr == wallet_idx.end()) {
+            if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount = max_amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            } else {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount += credits.amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            }
         } else {
             accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
                 account_itr.unclaimed_credits.amount += credits.amount;
@@ -447,11 +454,35 @@ void clashdomewld::addcredits(
             });
         }
     } else {
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-            account_itr.unclaimed_credits.amount += credits.amount;
-            account_itr.unclaimed_actions = new_actions;
-        });
+        auto tr_itr = trials.find(account.value);
+        check(tr_itr != trials.end(), "Account with name " + account.to_string() + " doesn't exist!");
+
+        vector<string> new_actions = ac_itr->unclaimed_actions;
+
+        for (auto i = 0; i < unclaimed_actions.size(); i++) {
+            new_actions.push_back(unclaimed_actions.at(i));
+        }
+
+        auto config_itr = config.begin();
+
+        auto wallet_idx = wallets.get_index<name("byowner")>();
+        auto wallet_itr = wallet_idx.find(account.value);
+
+        if (tr_itr->credits.amount + credits.amount > TRIAL_MAX_UNCLAIMED) {
+            trials.modify(tr_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.credits.amount = TRIAL_MAX_UNCLAIMED;
+                account_itr.unclaimed_actions = new_actions;
+                account_itr.full = true;
+            });
+        } else {
+            trials.modify(tr_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.credits.amount += credits.amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
+        }
     }
+
+    
 }
 
 void clashdomewld::setconfig(
@@ -768,6 +799,10 @@ void clashdomewld::erasetable(
     } else if (table_name == "tokenstats") {
         for (auto itr = tokenstats.begin(); itr != tokenstats.end();) {
             itr = tokenstats.erase(itr);
+        }
+    } else if (table_name == "trials") {
+        for (auto itr = trials.begin(); itr != trials.end();) {
+            itr = trials.erase(itr);
         }
     }
 
