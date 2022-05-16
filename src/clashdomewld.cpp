@@ -22,6 +22,26 @@ void clashdomewld::staketrial(
     check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + SLOT_SCHEMA_NAME);
     check(asset_itr->template_id == TRIAL_TEMPLATE_ID, "NFT doesn't correspond to template id " + to_string(TRIAL_TEMPLATE_ID));
 
+    atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
+    auto schema_itr = collection_schemas.find(name(CITIZEN_SCHEMA_NAME).value);
+
+    vector <uint8_t> mutable_serialized_data = asset_itr->mutable_serialized_data;
+    atomicassets::ATTRIBUTE_MAP mdata = atomicdata::deserialize(mutable_serialized_data, schema_itr->format);
+
+    if (mdata.find("partner") != mdata.end()) {
+
+        string partner = get<string> (mdata["partner"]);
+
+        auto rf_itr = referrals.find(account.value);
+
+        if (rf_itr == referrals.end()) {
+            referrals.emplace(CONTRACTN, [&](auto& referral) {
+                referral.account = account;
+                referral.partner = name(partner);
+            });
+        }
+    }
+
     asset credits;
     credits.symbol = CREDITS_SYMBOL;
     credits.amount = 0;

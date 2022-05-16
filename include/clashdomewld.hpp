@@ -250,6 +250,20 @@ private:
 
     trials_t trials = trials_t(get_self(), get_self().value); 
 
+    // referrals
+    TABLE referrals_s {
+
+        name account;
+        name partner;
+        vector<asset> earnings;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("referrals"), referrals_s> referrals_t;
+
+    referrals_t referrals = referrals_t(get_self(), get_self().value); 
+
     // config
     TABLE config_s {
 
@@ -544,7 +558,8 @@ private:
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
-    const uint64_t TRIAL_MAX_UNCLAIMED = 5000000;
+    // TODO: change this in production to 5000000
+    const uint64_t TRIAL_MAX_UNCLAIMED = 100000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};
