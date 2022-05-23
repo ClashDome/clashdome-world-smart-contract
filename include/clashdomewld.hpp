@@ -529,6 +529,7 @@ private:
     void stakeSlot(uint64_t asset_ids, name from, name to, string type);
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
+    void burnTrial(name account);
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
@@ -559,7 +560,7 @@ private:
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
     // TODO: change this in production to 5000000
-    const uint64_t TRIAL_MAX_UNCLAIMED = 100000;
+    const uint64_t TRIAL_MAX_UNCLAIMED = 5000000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};

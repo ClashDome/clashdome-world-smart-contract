@@ -1685,6 +1685,8 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
             acc.stamina = citizen_config_itr->max_stamina;
         });
     }
+
+    burnTrial(from);
 }
 
 void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
@@ -1906,6 +1908,24 @@ void clashdomewld::burnTokens(asset tokens, string memo_extra)
 
     credits.symbol=tokens.symbol;
     updateDailyStats(credits,2);
+}
+
+void clashdomewld::burnTrial(name account)
+{
+
+    auto trial_itr = trials.find(account.value);
+    auto ac_itr = accounts.find(account.value);
+
+    if (trial_itr != trials.end()) {
+
+        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+            acc.unclaimed_credits.amount += trial_itr->credits.amount;
+        });
+
+        // TODO: consumir stamina y bateria
+
+        trials.erase(trial_itr);
+    }
 }
 
 void clashdomewld::checkEarlyAccess(name account, uint64_t early_access) {
