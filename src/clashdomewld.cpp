@@ -762,6 +762,32 @@ void clashdomewld::erasetoolconf(
     toolconfig.erase(config_itr);
 }
 
+void clashdomewld::eraseaccount(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = accounts.find(account.value);
+
+    check(acc_itr != accounts.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    accounts.erase(acc_itr);
+}
+
+void clashdomewld::erasetrial(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = trials.find(account.value);
+
+    check(acc_itr != trials.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    trials.erase(acc_itr);
+}
+
 void clashdomewld::erasetable(
     string table_name
 ) {
@@ -853,6 +879,23 @@ void clashdomewld::setaccvalues(
         acc.jigowatts_free_slots = jigowatts_free_slots;
         acc.unclaimed_credits = unclaimed_credits;
         acc.unclaimed_actions = unclaimed_actions;
+    });
+}
+
+void clashdomewld::settrialcr(
+    name account,
+    asset credits
+) {
+
+    require_auth(get_self());
+
+    auto ac_itr = trials.find(account.value);
+
+    check(ac_itr != trials.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    trials.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+        acc.credits = credits;
+        acc.full = credits.amount >= TRIAL_MAX_UNCLAIMED;
     });
 }
 
@@ -1922,7 +1965,7 @@ void clashdomewld::burnTrial(name account)
             acc.unclaimed_credits.amount += trial_itr->credits.amount;
         });
 
-        // TODO: consumir stamina y bateria
+        // TODO: consumir stamina y bateria?
 
         trials.erase(trial_itr);
     }

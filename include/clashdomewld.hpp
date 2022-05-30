@@ -119,6 +119,12 @@ public:
     ACTION erasetoolconf(
         uint32_t template_id
     );
+    ACTION eraseaccount(
+        name account
+    );
+    ACTION erasetrial(
+        name account
+    );
     ACTION erasetable(
         string table_name
     );
@@ -132,6 +138,10 @@ public:
         uint16_t jigowatts_free_slots,
         asset unclaimed_credits,
         vector<string> unclaimed_actions
+    );
+    ACTION settrialcr(
+        name account,
+        asset credits
     );
     ACTION addcitizen(
         name account,   
@@ -550,16 +560,15 @@ private:
 
     // mainnet
     // const uint32_t PACKS_TEMPLATE_ID = 373360;
-    // const uint32_t TRIAL_TEMPLATE_ID = 417258;
+    // const uint32_t TRIAL_TEMPLATE_ID = 447908;
 
     // testnet
     const uint32_t PACKS_TEMPLATE_ID = 403495;
-    const uint32_t TRIAL_TEMPLATE_ID = 417258;
+    const uint32_t TRIAL_TEMPLATE_ID = 447908;
 
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
-    // TODO: change this in production to 5000000
     const uint64_t TRIAL_MAX_UNCLAIMED = 5000000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
