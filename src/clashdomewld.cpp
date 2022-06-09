@@ -7,9 +7,6 @@ void clashdomewld::staketrial(
 
     require_auth(account);
 
-    auto tr_itr = trials.find(account.value);
-    check(tr_itr == trials.end(), "Trial with name " + account.to_string() + " already exists!");
-
     // si ya se ha tenido una cuenta antes no se puede utilizar un trial
     auto ac_itr = accounts.find(account.value);
     check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already exists!");
@@ -28,31 +25,44 @@ void clashdomewld::staketrial(
     vector <uint8_t> mutable_serialized_data = asset_itr->mutable_serialized_data;
     atomicassets::ATTRIBUTE_MAP mdata = atomicdata::deserialize(mutable_serialized_data, schema_itr->format);
 
-    if (mdata.find("partner") != mdata.end()) {
+    if (mdata.find("affiliate") != mdata.end()) {
 
-        string partner = get<string> (mdata["partner"]);
+        string partner = get<string> (mdata["affiliate"]);
 
-        auto rf_itr = referrals.find(account.value);
+        auto rf_itr = partners.find(account.value);
 
-        if (rf_itr == referrals.end()) {
-            referrals.emplace(CONTRACTN, [&](auto& referral) {
+        if (rf_itr == partners.end()) {
+            partners.emplace(CONTRACTN, [&](auto& referral) {
                 referral.account = account;
+                referral.partner = name(partner);
+            });
+        } else {
+            partners.modify(rf_itr, CONTRACTN, [&](auto& referral) {
                 referral.partner = name(partner);
             });
         }
     }
 
-    asset credits;
-    credits.symbol = CREDITS_SYMBOL;
-    credits.amount = 0;
+    auto tr_itr = trials.find(account.value);
 
-    trials.emplace(CONTRACTN, [&](auto& trial) {
-        trial.account = account;
-        trial.asset_id = asset_id;
-        trial.credits = credits;
-        trial.full = false;
-    });
+    if (tr_itr == trials.end()) {
+        asset credits;
+        credits.symbol = CREDITS_SYMBOL;
+        credits.amount = 0;
 
+        trials.emplace(CONTRACTN, [&](auto& trial) {
+            trial.account = account;
+            trial.asset_id = asset_id;
+            trial.credits = credits;
+            trial.staked = true;
+            trial.full = false;
+        });
+    } else {
+        trials.modify(tr_itr, CONTRACTN, [&](auto& trial) {
+            trial.staked = true;
+            trial.asset_id = asset_id;
+        });
+    }
 }
 
 void clashdomewld::unstake(
@@ -428,6 +438,61 @@ void clashdomewld::claim(
     updateDailyStats(update_stats_asset,1);
 }
 
+void clashdomewld::claimtrial(
+    name account,
+    name affiliate
+) {
+
+    // TODO: cambiar esto al tener el programa de afiliados
+    require_auth(get_self());
+    // require_auth(account);
+
+    auto af_itr = affiliates.find(affiliate.value);
+    check(af_itr != affiliates.end(), "Affiliated " + affiliate.to_string() + " doesn't exist!");
+    check(af_itr->available_trials > 0, "Affiliated " + affiliate.to_string() + " has no trials availables!");
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already has a citizen!");
+
+    auto tr_itr = trials.find(account.value);
+    check(tr_itr == trials.end(), "Account with name " + account.to_string() + " already has a trial!");
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+
+    trials.emplace(CONTRACTN, [&](auto& trial) {
+        trial.account = account;
+        trial.credits = credits;
+        trial.staked = false;
+        trial.full = false;
+    });
+
+    affiliates.modify(af_itr, CONTRACTN, [&](auto& affiliate) {
+        affiliate.available_trials--;
+    });
+
+    atomicassets::ATTRIBUTE_MAP mdata = {};
+    mdata["affiliate"] = affiliate.to_string();
+
+    // mint and send trial
+    action (
+        permission_level{get_self(), name("active")},
+        atomicassets::ATOMICASSETS_ACCOUNT,
+        name("mintasset"),
+        std::make_tuple(
+            get_self(),
+            name(COLLECTION_NAME),
+            name(CITIZEN_SCHEMA_NAME),
+            TRIAL_TEMPLATE_ID,
+            account,
+            (atomicassets::ATTRIBUTE_MAP) {},
+            mdata,
+            (vector <asset>) {}
+        )
+    ).send();
+}
+
 void clashdomewld::addcredits(
     name account,
     asset credits,
@@ -500,9 +565,31 @@ void clashdomewld::addcredits(
                 account_itr.unclaimed_actions = new_actions;
             });
         }
-    }
+    }   
+}
 
-    
+void clashdomewld::addaffiliate(
+    name account,
+    uint8_t commission,
+    uint16_t available_trials
+) {
+
+    require_auth(get_self());
+
+    auto ac_itr = affiliates.find(account.value);
+
+    if (ac_itr != affiliates.end()) {
+        affiliates.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+            account_itr.commission = commission;
+            account_itr.available_trials = available_trials;
+        });
+    } else {
+        affiliates.emplace(CONTRACTN, [&](auto& account_itr) {
+            account_itr.account = account;
+            account_itr.commission = commission;
+            account_itr.available_trials = available_trials;
+        });
+    }
 }
 
 void clashdomewld::setconfig(
@@ -849,6 +936,10 @@ void clashdomewld::erasetable(
     } else if (table_name == "trials") {
         for (auto itr = trials.begin(); itr != trials.end();) {
             itr = trials.erase(itr);
+        }
+    } else if (table_name == "partners") {
+        for (auto itr = partners.begin(); itr != partners.end();) {
+            itr = partners.erase(itr);
         }
     }
 

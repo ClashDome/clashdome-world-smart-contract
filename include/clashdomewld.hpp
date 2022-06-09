@@ -42,11 +42,19 @@ public:
     ACTION claim(
         name account
     );
-
+    ACTION claimtrial(
+        name account,
+        name afiliate
+    );
     ACTION addcredits(
         name account,
         asset credits,
         vector<string> unclaimed_actions
+    );
+    ACTION addaffiliate(
+        name account,
+        uint8_t commission,
+        uint16_t available_trials
     );
     ACTION editsocial(
         name account,
@@ -251,6 +259,7 @@ private:
         uint64_t asset_id;
         asset credits;
         vector<string> unclaimed_actions;
+        bool staked;
         bool full;
         
         uint64_t primary_key() const { return account.value; }
@@ -260,19 +269,45 @@ private:
 
     trials_t trials = trials_t(get_self(), get_self().value); 
 
-    // referrals
-    TABLE referrals_s {
+    // partners
+
+    struct earning {
+        uint64_t timestamp;      
+        uint64_t duel_id;  
+        asset fee; 
+    };
+
+    TABLE partners_s {
 
         name account;
         name partner;
-        vector<asset> earnings;
+        vector<earning> unlcaimed_earnings;
+        vector<earning> claimed_earnings;
+        
+        uint64_t primary_key() const { return account.value; }
+        uint64_t by_partner() const { return partner.value; }
+    };
+
+    typedef multi_index<name("partners"), partners_s,
+        indexed_by < name("bypartner"), const_mem_fun < partners_s, uint64_t, &partners_s::by_partner>>>
+    partners_t;
+
+    partners_t partners = partners_t(get_self(), get_self().value);
+
+    // affiliates
+
+    TABLE affiliates_s {
+
+        name account;
+        uint8_t commission;
+        uint16_t available_trials;
         
         uint64_t primary_key() const { return account.value; }
     };
 
-    typedef multi_index<name("referrals"), referrals_s> referrals_t;
+    typedef multi_index<name("affiliates"), affiliates_s> affiliates_t;
 
-    referrals_t referrals = referrals_t(get_self(), get_self().value); 
+    affiliates_t affiliates = affiliates_t(get_self(), get_self().value); 
 
     // config
     TABLE config_s {
@@ -560,7 +595,7 @@ private:
 
     // mainnet
     // const uint32_t PACKS_TEMPLATE_ID = 373360;
-    // const uint32_t TRIAL_TEMPLATE_ID = 447908;
+    // const uint32_t TRIAL_TEMPLATE_ID = 530445;
 
     // testnet
     const uint32_t PACKS_TEMPLATE_ID = 403495;
@@ -569,7 +604,7 @@ private:
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
-    const uint64_t TRIAL_MAX_UNCLAIMED = 5000000;
+    const uint64_t TRIAL_MAX_UNCLAIMED = 3600000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};
