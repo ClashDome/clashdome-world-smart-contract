@@ -22,6 +22,10 @@ public:
 
     using contract::contract;
 
+    ACTION staketrial(
+        name account,
+        uint64_t asset_id
+    );
     ACTION unstake(
         name account,
         uint64_t asset_id,
@@ -38,11 +42,19 @@ public:
     ACTION claim(
         name account
     );
-
+    ACTION claimtrial(
+        name account,
+        name afiliate
+    );
     ACTION addcredits(
         name account,
         asset credits,
         vector<string> unclaimed_actions
+    );
+    ACTION addaffiliate(
+        name account,
+        uint8_t commission,
+        uint16_t available_trials
     );
     ACTION editsocial(
         name account,
@@ -115,6 +127,12 @@ public:
     ACTION erasetoolconf(
         uint32_t template_id
     );
+    ACTION eraseaccount(
+        name account
+    );
+    ACTION erasetrial(
+        name account
+    );
     ACTION erasetable(
         string table_name
     );
@@ -128,6 +146,10 @@ public:
         uint16_t jigowatts_free_slots,
         asset unclaimed_credits,
         vector<string> unclaimed_actions
+    );
+    ACTION settrialcr(
+        name account,
+        asset credits
     );
     ACTION addcitizen(
         name account,   
@@ -229,6 +251,63 @@ private:
     typedef multi_index<name("accounts"), accounts_s> accounts_t;
 
     accounts_t accounts = accounts_t(get_self(), get_self().value); 
+
+    // trials
+    TABLE trials_s {
+
+        name account;
+        uint64_t asset_id;
+        asset credits;
+        vector<string> unclaimed_actions;
+        bool staked;
+        bool full;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("trials"), trials_s> trials_t;
+
+    trials_t trials = trials_t(get_self(), get_self().value); 
+
+    // partners
+
+    struct earning {
+        uint64_t timestamp;      
+        uint64_t duel_id;  
+        asset fee; 
+    };
+
+    TABLE partners_s {
+
+        name account;
+        name partner;
+        vector<earning> unlcaimed_earnings;
+        vector<earning> claimed_earnings;
+        
+        uint64_t primary_key() const { return account.value; }
+        uint64_t by_partner() const { return partner.value; }
+    };
+
+    typedef multi_index<name("partners"), partners_s,
+        indexed_by < name("bypartner"), const_mem_fun < partners_s, uint64_t, &partners_s::by_partner>>>
+    partners_t;
+
+    partners_t partners = partners_t(get_self(), get_self().value);
+
+    // affiliates
+
+    TABLE affiliates_s {
+
+        name account;
+        uint8_t commission;
+        uint16_t available_trials;
+        
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("affiliates"), affiliates_s> affiliates_t;
+
+    affiliates_t affiliates = affiliates_t(get_self(), get_self().value); 
 
     // config
     TABLE config_s {
@@ -495,6 +574,7 @@ private:
     void stakeSlot(uint64_t asset_ids, name from, name to, string type);
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
+    void burnTrial(name account);
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
@@ -512,11 +592,19 @@ private:
     const string WALLET_SCHEMA_NAME = "wallet";
     const string CITIZEN_SCHEMA_NAME = "citizen";
     const string PACKS_SCHEMA_NAME = "packs";
-    const uint32_t PACKS_TEMPLATE_ID = 373360;
-    // const uint32_t PACKS_TEMPLATE_ID = 403495;
+
+    // mainnet
+    // const uint32_t PACKS_TEMPLATE_ID = 373360;
+    // const uint32_t TRIAL_TEMPLATE_ID = 530445;
+
+    // testnet
+    const uint32_t PACKS_TEMPLATE_ID = 403495;
+    const uint32_t TRIAL_TEMPLATE_ID = 447908;
+
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;
     const uint64_t SOCIAL_CARBZ_PAYMENT = 3500000;
+    const uint64_t TRIAL_MAX_UNCLAIMED = 3600000;
     const uint64_t MAX_SLOTS = 3;
     const uint64_t CRAFT_BURN_PERCENT = 10;
     enum CitizenType {PLEB = 0, UBERENORM, HIGH_CLONE};

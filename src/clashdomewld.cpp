@@ -1,5 +1,70 @@
 #include <clashdomewld.hpp>
 
+void clashdomewld::staketrial(
+    name account,
+    uint64_t asset_id
+) {
+
+    require_auth(account);
+
+    // si ya se ha tenido una cuenta antes no se puede utilizar un trial
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already exists!");
+
+    atomicassets::assets_t player_assets = atomicassets::get_assets(account);
+    auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
+
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
+    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
+    check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + SLOT_SCHEMA_NAME);
+    check(asset_itr->template_id == TRIAL_TEMPLATE_ID, "NFT doesn't correspond to template id " + to_string(TRIAL_TEMPLATE_ID));
+
+    atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
+    auto schema_itr = collection_schemas.find(name(CITIZEN_SCHEMA_NAME).value);
+
+    vector <uint8_t> mutable_serialized_data = asset_itr->mutable_serialized_data;
+    atomicassets::ATTRIBUTE_MAP mdata = atomicdata::deserialize(mutable_serialized_data, schema_itr->format);
+
+    if (mdata.find("affiliate") != mdata.end()) {
+
+        string partner = get<string> (mdata["affiliate"]);
+
+        auto rf_itr = partners.find(account.value);
+
+        if (rf_itr == partners.end()) {
+            partners.emplace(CONTRACTN, [&](auto& referral) {
+                referral.account = account;
+                referral.partner = name(partner);
+            });
+        } else {
+            partners.modify(rf_itr, CONTRACTN, [&](auto& referral) {
+                referral.partner = name(partner);
+            });
+        }
+    }
+
+    auto tr_itr = trials.find(account.value);
+
+    if (tr_itr == trials.end()) {
+        asset credits;
+        credits.symbol = CREDITS_SYMBOL;
+        credits.amount = 0;
+
+        trials.emplace(CONTRACTN, [&](auto& trial) {
+            trial.account = account;
+            trial.asset_id = asset_id;
+            trial.credits = credits;
+            trial.staked = true;
+            trial.full = false;
+        });
+    } else {
+        trials.modify(tr_itr, CONTRACTN, [&](auto& trial) {
+            trial.staked = true;
+            trial.asset_id = asset_id;
+        });
+    }
+}
+
 void clashdomewld::unstake(
     name account,
     uint64_t asset_id,
@@ -373,6 +438,61 @@ void clashdomewld::claim(
     updateDailyStats(update_stats_asset,1);
 }
 
+void clashdomewld::claimtrial(
+    name account,
+    name affiliate
+) {
+
+    // TODO: cambiar esto al tener el programa de afiliados
+    require_auth(get_self());
+    // require_auth(account);
+
+    auto af_itr = affiliates.find(affiliate.value);
+    check(af_itr != affiliates.end(), "Affiliated " + affiliate.to_string() + " doesn't exist!");
+    check(af_itr->available_trials > 0, "Affiliated " + affiliate.to_string() + " has no trials availables!");
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already has a citizen!");
+
+    auto tr_itr = trials.find(account.value);
+    check(tr_itr == trials.end(), "Account with name " + account.to_string() + " already has a trial!");
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+
+    trials.emplace(CONTRACTN, [&](auto& trial) {
+        trial.account = account;
+        trial.credits = credits;
+        trial.staked = false;
+        trial.full = false;
+    });
+
+    affiliates.modify(af_itr, CONTRACTN, [&](auto& affiliate) {
+        affiliate.available_trials--;
+    });
+
+    atomicassets::ATTRIBUTE_MAP mdata = {};
+    mdata["affiliate"] = affiliate.to_string();
+
+    // mint and send trial
+    action (
+        permission_level{get_self(), name("active")},
+        atomicassets::ATOMICASSETS_ACCOUNT,
+        name("mintasset"),
+        std::make_tuple(
+            get_self(),
+            name(COLLECTION_NAME),
+            name(CITIZEN_SCHEMA_NAME),
+            TRIAL_TEMPLATE_ID,
+            account,
+            (atomicassets::ATTRIBUTE_MAP) {},
+            mdata,
+            (vector <asset>) {}
+        )
+    ).send();
+}
+
 void clashdomewld::addcredits(
     name account,
     asset credits,
@@ -384,27 +504,34 @@ void clashdomewld::addcredits(
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
-    check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
 
-    vector<string> new_actions = ac_itr->unclaimed_actions;
+    if (ac_itr != accounts.end()) {
 
-    for (auto i = 0; i < unclaimed_actions.size(); i++) {
-        new_actions.push_back(unclaimed_actions.at(i));
-    }
+        vector<string> new_actions = ac_itr->unclaimed_actions;
 
-    auto config_itr = config.begin();
+        for (auto i = 0; i < unclaimed_actions.size(); i++) {
+            new_actions.push_back(unclaimed_actions.at(i));
+        }
 
-    auto wallet_idx = wallets.get_index<name("byowner")>();
-    auto wallet_itr = wallet_idx.find(account.value);
+        auto config_itr = config.begin();
 
-    uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+        auto wallet_idx = wallets.get_index<name("byowner")>();
+        auto wallet_itr = wallet_idx.find(account.value);
 
-    if (wallet_itr == wallet_idx.end()) {
-        if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
-            accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-                account_itr.unclaimed_credits.amount = max_amount;
-                account_itr.unclaimed_actions = new_actions;
-            });
+        uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+        if (wallet_itr == wallet_idx.end()) {
+            if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount = max_amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            } else {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount += credits.amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            }
         } else {
             accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
                 account_itr.unclaimed_credits.amount += credits.amount;
@@ -412,9 +539,55 @@ void clashdomewld::addcredits(
             });
         }
     } else {
-        accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
-            account_itr.unclaimed_credits.amount += credits.amount;
-            account_itr.unclaimed_actions = new_actions;
+        auto tr_itr = trials.find(account.value);
+        check(tr_itr != trials.end(), "Account with name " + account.to_string() + " doesn't exist!");
+
+        vector<string> new_actions = ac_itr->unclaimed_actions;
+
+        for (auto i = 0; i < unclaimed_actions.size(); i++) {
+            new_actions.push_back(unclaimed_actions.at(i));
+        }
+
+        auto config_itr = config.begin();
+
+        auto wallet_idx = wallets.get_index<name("byowner")>();
+        auto wallet_itr = wallet_idx.find(account.value);
+
+        if (tr_itr->credits.amount + credits.amount > TRIAL_MAX_UNCLAIMED) {
+            trials.modify(tr_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.credits.amount = TRIAL_MAX_UNCLAIMED;
+                account_itr.unclaimed_actions = new_actions;
+                account_itr.full = true;
+            });
+        } else {
+            trials.modify(tr_itr, CONTRACTN, [&](auto& account_itr) {
+                account_itr.credits.amount += credits.amount;
+                account_itr.unclaimed_actions = new_actions;
+            });
+        }
+    }   
+}
+
+void clashdomewld::addaffiliate(
+    name account,
+    uint8_t commission,
+    uint16_t available_trials
+) {
+
+    require_auth(get_self());
+
+    auto ac_itr = affiliates.find(account.value);
+
+    if (ac_itr != affiliates.end()) {
+        affiliates.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+            account_itr.commission = commission;
+            account_itr.available_trials = available_trials;
+        });
+    } else {
+        affiliates.emplace(CONTRACTN, [&](auto& account_itr) {
+            account_itr.account = account;
+            account_itr.commission = commission;
+            account_itr.available_trials = available_trials;
         });
     }
 }
@@ -676,6 +849,32 @@ void clashdomewld::erasetoolconf(
     toolconfig.erase(config_itr);
 }
 
+void clashdomewld::eraseaccount(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = accounts.find(account.value);
+
+    check(acc_itr != accounts.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    accounts.erase(acc_itr);
+}
+
+void clashdomewld::erasetrial(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = trials.find(account.value);
+
+    check(acc_itr != trials.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    trials.erase(acc_itr);
+}
+
 void clashdomewld::erasetable(
     string table_name
 ) {
@@ -734,6 +933,14 @@ void clashdomewld::erasetable(
         for (auto itr = tokenstats.begin(); itr != tokenstats.end();) {
             itr = tokenstats.erase(itr);
         }
+    } else if (table_name == "trials") {
+        for (auto itr = trials.begin(); itr != trials.end();) {
+            itr = trials.erase(itr);
+        }
+    } else if (table_name == "partners") {
+        for (auto itr = partners.begin(); itr != partners.end();) {
+            itr = partners.erase(itr);
+        }
     }
 
 }
@@ -763,6 +970,23 @@ void clashdomewld::setaccvalues(
         acc.jigowatts_free_slots = jigowatts_free_slots;
         acc.unclaimed_credits = unclaimed_credits;
         acc.unclaimed_actions = unclaimed_actions;
+    });
+}
+
+void clashdomewld::settrialcr(
+    name account,
+    asset credits
+) {
+
+    require_auth(get_self());
+
+    auto ac_itr = trials.find(account.value);
+
+    check(ac_itr != trials.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    trials.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+        acc.credits = credits;
+        acc.full = credits.amount >= TRIAL_MAX_UNCLAIMED;
     });
 }
 
@@ -1511,6 +1735,7 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
     // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION
     check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
     check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + CITIZEN_SCHEMA_NAME);
+    check(asset_itr->template_id != TRIAL_TEMPLATE_ID, "You can't stake a trial citizen.");
 
     atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
     auto schema_itr = collection_schemas.find(name(CITIZEN_SCHEMA_NAME).value);
@@ -1594,6 +1819,8 @@ void clashdomewld::stakeAvatar(uint64_t asset_id, name from, name to, string mem
             acc.stamina = citizen_config_itr->max_stamina;
         });
     }
+
+    burnTrial(from);
 }
 
 void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
@@ -1815,6 +2042,24 @@ void clashdomewld::burnTokens(asset tokens, string memo_extra)
 
     credits.symbol=tokens.symbol;
     updateDailyStats(credits,2);
+}
+
+void clashdomewld::burnTrial(name account)
+{
+
+    auto trial_itr = trials.find(account.value);
+    auto ac_itr = accounts.find(account.value);
+
+    if (trial_itr != trials.end()) {
+
+        accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
+            acc.unclaimed_credits.amount += trial_itr->credits.amount;
+        });
+
+        // TODO: consumir stamina y bateria?
+
+        trials.erase(trial_itr);
+    }
 }
 
 void clashdomewld::checkEarlyAccess(name account, uint64_t early_access) {
