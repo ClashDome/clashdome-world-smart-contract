@@ -639,7 +639,6 @@ void clashdomewld::setshopitem(
     string item_name,
     string img,
     name schema_name,
-    string type,
     string game,
     uint64_t timestamp_start,
     uint64_t timestamp_end,
@@ -659,7 +658,6 @@ void clashdomewld::setshopitem(
             item.item_name = item_name;
             item.img = img;
             item.schema_name = schema_name;
-            item.type = type;
             item.game = game;
             item.timestamp_start = timestamp_start;
             item.timestamp_end = timestamp_end;
@@ -674,7 +672,6 @@ void clashdomewld::setshopitem(
             item.item_name = item_name;
             item.img = img;
             item.schema_name = schema_name;
-            item.type = type;
             item.game = game;
             item.timestamp_start = timestamp_start;
             item.timestamp_end = timestamp_end;
@@ -1847,6 +1844,8 @@ void clashdomewld::receive_wax_transfer(
         check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
 
         check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+
+        check(quantity.amount >= shop_itr->craft[0].amount, "Insufficient WAX.");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 

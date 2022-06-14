@@ -75,7 +75,6 @@ public:
         string item_name,
         string img,
         name schema_name,
-        string type,
         string game,
         uint64_t timestamp_start,
         uint64_t timestamp_end,
@@ -374,7 +373,6 @@ private:
         string item_name;
         string img;
         name schema_name;
-        string type;
         string game;
         uint64_t timestamp_start;
         uint64_t timestamp_end;
