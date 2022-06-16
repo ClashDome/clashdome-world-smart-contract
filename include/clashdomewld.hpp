@@ -49,7 +49,8 @@ public:
     ACTION addcredits(
         name account,
         asset credits,
-        vector<string> unclaimed_actions
+        vector<string> unclaimed_actions,
+        const string&  memo 
     );
     ACTION addaffiliate(
         name account,
