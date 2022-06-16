@@ -78,9 +78,10 @@ public:
         string game,
         uint64_t timestamp_start,
         uint64_t timestamp_end,
-        int32_t max_items,
+        int32_t max_claimable,
         int32_t available_items,
-        vector<asset> craft,
+        int32_t account_limit,
+        vector<asset> price,
         string description,
         string extra_data
     );
@@ -376,9 +377,10 @@ private:
         string game;
         uint64_t timestamp_start;
         uint64_t timestamp_end;
-        int32_t max_items;
+        int32_t max_claimable;
         int32_t available_items;
-        vector<asset> craft;
+        int32_t account_limit;
+        vector<asset> price;
         string description;
         string extra_data;
 
@@ -388,6 +390,19 @@ private:
     typedef multi_index<name("shop"), shop_s> shop_t;
 
     shop_t shop = shop_t(get_self(), get_self().value); 
+
+    // shop_max_claimable
+    TABLE smclaim_s {
+        name account;
+        uint32_t template_id;
+        uint32_t claims;
+
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("smclaim"), smclaim_s> smclaim_t;
+
+    smclaim_t smclaim = smclaim_t(get_self(), get_self().value); 
 
     // tool config
     TABLE toolconfig_s {

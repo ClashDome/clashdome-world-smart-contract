@@ -642,9 +642,10 @@ void clashdomewld::setshopitem(
     string game,
     uint64_t timestamp_start,
     uint64_t timestamp_end,
-    int32_t max_items,
+    int32_t max_claimable,
     int32_t available_items,
-    vector<asset> craft,
+    int32_t account_limit,
+    vector<asset> price,
     string description,
     string extra_data
 ) {
@@ -661,9 +662,10 @@ void clashdomewld::setshopitem(
             item.game = game;
             item.timestamp_start = timestamp_start;
             item.timestamp_end = timestamp_end;
-            item.max_items = max_items;
+            item.max_claimable = max_claimable;
             item.available_items = available_items;
-            item.craft = craft;
+            item.account_limit = account_limit;
+            item.price = price;
             item.description = description;
             item.extra_data = extra_data;
         });
@@ -675,9 +677,10 @@ void clashdomewld::setshopitem(
             item.game = game;
             item.timestamp_start = timestamp_start;
             item.timestamp_end = timestamp_end;
-            item.max_items = max_items;
+            item.max_claimable = max_claimable;
             item.available_items = available_items;
-            item.craft = craft;
+            item.account_limit = account_limit;
+            item.price = price;
             item.description = description;
             item.extra_data = extra_data;
         });
@@ -1783,17 +1786,42 @@ void clashdomewld::receive_tokens_transfer(
         check(shop_itr->timestamp_start < timestamp, "Item " + to_string(template_id) + " isn't available yet!");
         check(shop_itr->timestamp_end > timestamp, "Item " + to_string(template_id) + " is no longer available!");
 
-        for(auto i = 0; i < shop_itr->craft.size(); i++) {
+        auto smclaim_itr = smclaim.find(from.value);
 
-            uint64_t pos = finder(quantities, shop_itr->craft[i].symbol);
+        if (smclaim_itr == smclaim.end()) {
+            smclaim.emplace(CONTRACTN, [&](auto& acc) {
+                acc.account = from;
+                acc.template_id = template_id;
+                acc.claims = 1;
+            });
+        } else {
+
+            if (smclaim_itr->template_id != template_id) {
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims = 1;
+                });
+            } else {
+                check(smclaim_itr->claims < shop_itr->account_limit, "You have obtained the maximum number of items.");
+
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims++;
+                });
+            }
+        }
+
+        for(auto i = 0; i < shop_itr->price.size(); i++) {
+
+            uint64_t pos = finder(quantities, shop_itr->price[i].symbol);
 
             check(pos != -1, "Insufficient materials.");
-            check(quantities[pos].amount >= shop_itr->craft[i].amount, "Insufficient materials.");
+            check(quantities[pos].amount == shop_itr->price[i].amount, "Invalid materials.");
 
             // TODO: decidir si se quema o no al comprar
-            // burnTokens(shop_itr->craft[i], "Item with template_id " + to_string(template_id) + ".");
+            // burnTokens(shop_itr->price[i], "Item with template_id " + to_string(template_id) + ".");
             
-            updateDailyStats(shop_itr->craft[i],0);
+            updateDailyStats(shop_itr->price[i],0);
         }
 
         if (shop_itr->available_items != -1) {
@@ -1845,7 +1873,32 @@ void clashdomewld::receive_wax_transfer(
 
         check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
-        check(quantity.amount >= shop_itr->craft[0].amount, "Insufficient WAX.");
+        auto smclaim_itr = smclaim.find(from.value);
+
+        if (smclaim_itr == smclaim.end()) {
+            smclaim.emplace(CONTRACTN, [&](auto& acc) {
+                acc.account = from;
+                acc.template_id = template_id;
+                acc.claims = 1;
+            });
+        } else {
+
+            if (smclaim_itr->template_id != template_id) {
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims = 1;
+                });
+            } else {
+                check(smclaim_itr->claims < shop_itr->account_limit, "You have obtained the maximum number of items.");
+
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims++;
+                });
+            }
+        }
+
+        check(quantity.amount == shop_itr->price[0].amount, "Invalid WAX amount.");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
