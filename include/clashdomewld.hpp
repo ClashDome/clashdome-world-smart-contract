@@ -70,6 +70,24 @@ public:
         uint16_t wallet_stamina_consumed,
         uint16_t wallet_battery_consumed
     );
+    ACTION setshopitem(
+        uint32_t template_id,
+        string item_name,
+        string img,
+        name schema_name,
+        string game,
+        uint64_t timestamp_start,
+        uint64_t timestamp_end,
+        int32_t max_claimable,
+        int32_t available_items,
+        int32_t account_limit,
+        vector<asset> price,
+        string description,
+        string extra_data
+    );
+    ACTION eraseshopit(
+        uint32_t template_id
+    );
     ACTION settoolconfig(
         uint32_t template_id,
         string tool_name,
@@ -192,6 +210,13 @@ public:
         string memo
     );
 
+    [[eosio::on_notify("eosio.token::transfer")]] void receive_wax_transfer(
+        name from,
+        name to,
+        asset quantity,
+        string memo
+    );
+
     [[eosio::on_notify("clashdometkn::transfers")]] void receive_tokens_transfer(
         name from,
         name to,
@@ -270,7 +295,6 @@ private:
     trials_t trials = trials_t(get_self(), get_self().value); 
 
     // partners
-
     struct earning {
         uint64_t timestamp;      
         uint64_t duel_id;  
@@ -343,6 +367,42 @@ private:
     typedef multi_index<name("citizconfig"), citizconfig_s> citizconfig_t;
 
     citizconfig_t citizconfig = citizconfig_t(get_self(), get_self().value); 
+
+    // shop
+    TABLE shop_s {
+        uint32_t template_id;
+        string item_name;
+        string img;
+        name schema_name;
+        string game;
+        uint64_t timestamp_start;
+        uint64_t timestamp_end;
+        int32_t max_claimable;
+        int32_t available_items;
+        int32_t account_limit;
+        vector<asset> price;
+        string description;
+        string extra_data;
+
+        uint64_t primary_key() const { return template_id; }
+    };
+
+    typedef multi_index<name("shop"), shop_s> shop_t;
+
+    shop_t shop = shop_t(get_self(), get_self().value); 
+
+    // shop_max_claimable
+    TABLE smclaim_s {
+        name account;
+        uint32_t template_id;
+        uint32_t claims;
+
+        uint64_t primary_key() const { return account.value; }
+    };
+
+    typedef multi_index<name("smclaim"), smclaim_s> smclaim_t;
+
+    smclaim_t smclaim = smclaim_t(get_self(), get_self().value); 
 
     // tool config
     TABLE toolconfig_s {
@@ -594,12 +654,12 @@ private:
     const string PACKS_SCHEMA_NAME = "packs";
 
     // mainnet
-    // const uint32_t PACKS_TEMPLATE_ID = 373360;
-    // const uint32_t TRIAL_TEMPLATE_ID = 530445;
+    const uint32_t PACKS_TEMPLATE_ID = 373360;
+    const uint32_t TRIAL_TEMPLATE_ID = 530445;
 
     // testnet
-    const uint32_t PACKS_TEMPLATE_ID = 403495;
-    const uint32_t TRIAL_TEMPLATE_ID = 447908;
+    // const uint32_t PACKS_TEMPLATE_ID = 403495;
+    // const uint32_t TRIAL_TEMPLATE_ID = 447908;
 
     const uint64_t PACK_CARBZ_REWARD = 15000000;
     const uint64_t PACK_JIGO_REWARD = 10000000;

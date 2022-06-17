@@ -634,6 +634,72 @@ void clashdomewld::setconfig(
     }
 }
 
+void clashdomewld::setshopitem(
+    uint32_t template_id,
+    string item_name,
+    string img,
+    name schema_name,
+    string game,
+    uint64_t timestamp_start,
+    uint64_t timestamp_end,
+    int32_t max_claimable,
+    int32_t available_items,
+    int32_t account_limit,
+    vector<asset> price,
+    string description,
+    string extra_data
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    if (shop_itr == shop.end()) {
+        shop.emplace(CONTRACTN, [&](auto& item) {
+            item.template_id = template_id;
+            item.item_name = item_name;
+            item.img = img;
+            item.schema_name = schema_name;
+            item.game = game;
+            item.timestamp_start = timestamp_start;
+            item.timestamp_end = timestamp_end;
+            item.max_claimable = max_claimable;
+            item.available_items = available_items;
+            item.account_limit = account_limit;
+            item.price = price;
+            item.description = description;
+            item.extra_data = extra_data;
+        });
+    } else {
+        shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+            item.item_name = item_name;
+            item.img = img;
+            item.schema_name = schema_name;
+            item.game = game;
+            item.timestamp_start = timestamp_start;
+            item.timestamp_end = timestamp_end;
+            item.max_claimable = max_claimable;
+            item.available_items = available_items;
+            item.account_limit = account_limit;
+            item.price = price;
+            item.description = description;
+            item.extra_data = extra_data;
+        });
+    }
+}
+
+void clashdomewld::eraseshopit(
+    uint32_t template_id
+) {
+
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    shop.erase(shop_itr);
+}
+
 void clashdomewld::settoolconfig(
     uint32_t template_id,
         string tool_name,
@@ -1702,6 +1768,165 @@ void clashdomewld::receive_tokens_transfer(
                 (vector <asset>) {}
             )
         ).send();
+    } else if(memo.find("buy_item") != string::npos) {
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint32_t template_id = (uint32_t) stoull(d2);
+
+        auto shop_itr = shop.find(template_id);
+        check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
+
+        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+
+        uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+
+        check(shop_itr->timestamp_start < timestamp, "Item " + to_string(template_id) + " isn't available yet!");
+        check(shop_itr->timestamp_end > timestamp, "Item " + to_string(template_id) + " is no longer available!");
+
+        auto smclaim_itr = smclaim.find(from.value);
+
+        if (smclaim_itr == smclaim.end()) {
+            smclaim.emplace(CONTRACTN, [&](auto& acc) {
+                acc.account = from;
+                acc.template_id = template_id;
+                acc.claims = 1;
+            });
+        } else {
+
+            if (smclaim_itr->template_id != template_id) {
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims = 1;
+                });
+            } else {
+                check(smclaim_itr->claims < shop_itr->account_limit, "You have obtained the maximum number of items.");
+
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims++;
+                });
+            }
+        }
+
+        for(auto i = 0; i < shop_itr->price.size(); i++) {
+
+            uint64_t pos = finder(quantities, shop_itr->price[i].symbol);
+
+            check(pos != -1, "Insufficient materials.");
+            check(quantities[pos].amount == shop_itr->price[i].amount, "Invalid materials.");
+
+            // TODO: decidir si se quema o no al comprar
+            // burnTokens(shop_itr->price[i], "Item with template_id " + to_string(template_id) + ".");
+            
+            updateDailyStats(shop_itr->price[i],0);
+        }
+
+        if (shop_itr->available_items != -1) {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items--;
+            });
+        }
+
+        // mint and send item
+        action (
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("mintasset"),
+            std::make_tuple(
+                get_self(),
+                name(COLLECTION_NAME),
+                shop_itr->schema_name,
+                shop_itr->template_id,
+                from,
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (vector <asset>) {}
+            )
+        ).send();
+    }
+}
+
+void clashdomewld::receive_wax_transfer(
+    name from,
+    name to,
+    asset quantity,
+    string memo
+) {
+
+    if (to != get_self()) {
+        return;
+    }
+
+    if (memo.find("buy_item") != string::npos) {
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string d2 = memo.substr(fb + 1);
+
+        uint32_t template_id = (uint32_t) stoull(d2);
+
+        auto shop_itr = shop.find(template_id);
+        check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
+
+        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+
+        auto smclaim_itr = smclaim.find(from.value);
+
+        if (smclaim_itr == smclaim.end()) {
+            smclaim.emplace(CONTRACTN, [&](auto& acc) {
+                acc.account = from;
+                acc.template_id = template_id;
+                acc.claims = 1;
+            });
+        } else {
+
+            if (smclaim_itr->template_id != template_id) {
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims = 1;
+                });
+            } else {
+                check(smclaim_itr->claims < shop_itr->account_limit, "You have obtained the maximum number of items.");
+
+                smclaim.modify(smclaim_itr, CONTRACTN, [&](auto& acc) {
+                    acc.template_id = template_id;
+                    acc.claims++;
+                });
+            }
+        }
+
+        check(quantity.amount == shop_itr->price[0].amount, "Invalid WAX amount.");
+
+        uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+
+        check(shop_itr->timestamp_start < timestamp, "Item " + to_string(template_id) + " isn't available yet!");
+        check(shop_itr->timestamp_end > timestamp, "Item " + to_string(template_id) + " is no longer available!");
+
+        if (shop_itr->available_items != -1) {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items--;
+            });
+        }
+
+        // mint and send item
+        action (
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("mintasset"),
+            std::make_tuple(
+                get_self(),
+                name(COLLECTION_NAME),
+                shop_itr->schema_name,
+                shop_itr->template_id,
+                from,
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (atomicassets::ATTRIBUTE_MAP) {},
+                (vector <asset>) {}
+            )
+        ).send();
     }
 }
 
@@ -2018,7 +2243,7 @@ void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
 void clashdomewld::burnTokens(asset tokens, string memo_extra)
 {
     asset credits;
-    credits.symbol = LUDIO_SYMBOL;
+    credits.symbol = tokens.symbol;
     credits.amount = (tokens.amount * CRAFT_BURN_PERCENT) / 100;
 
     if (tokens.symbol == JIGOWATTS_SYMBOL) {
@@ -2107,6 +2332,14 @@ void clashdomewld::parseSocialsMemo(name account, string memo)
 void clashdomewld::updateDailyStats(asset assetVal,int type){
     int64_t amount= assetVal.amount;
     symbol symbol= assetVal.symbol;
+
+    if (symbol == LUDIO_SYMBOL) {
+        symbol = CREDITS_SYMBOL;
+    } else if (symbol == CDCARBZ_SYMBOL) {
+        symbol = CARBZ_SYMBOL;
+    } else if (symbol == CDJIGO_SYMBOL) {
+        symbol = JIGOWATTS_SYMBOL;
+    }
 
     asset nullasset;
     nullasset.amount=0.0000;
