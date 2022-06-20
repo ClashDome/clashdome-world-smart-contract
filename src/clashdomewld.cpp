@@ -770,6 +770,20 @@ void clashdomewld::setcraft(
     });
 }
 
+void clashdomewld::setslotcraft(
+    uint32_t template_id,
+    vector<asset> craft
+) {
+    require_auth(get_self());
+
+    auto slots_conf_itr = slotsconfig.find(template_id);
+    check(slots_conf_itr != slotsconfig.end(), "Slot with template id " + to_string(template_id) + " doesn't exist!");
+
+    slotsconfig.modify(slots_conf_itr, CONTRACTN, [&](auto& config_row) {
+        config_row.craft = craft;
+    });
+}
+
 void clashdomewld::setreward(
     uint32_t template_id,
     vector<asset> rewards
