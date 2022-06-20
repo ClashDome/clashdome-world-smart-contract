@@ -1626,6 +1626,8 @@ void clashdomewld::receive_tokens_transfer(
 
     } else if(memo.find("craft_tool") != string::npos) {
 
+        check(0 == 1, "Craft tool currently disabled.");
+
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
         string d2 = memo.substr(fb + 1);
@@ -1721,6 +1723,8 @@ void clashdomewld::receive_tokens_transfer(
             )
         ).send();
     } else if (memo.find("craft_wallet") != string::npos) {
+
+        check(0 == 1, "Craft wallet currently disabled.");
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
