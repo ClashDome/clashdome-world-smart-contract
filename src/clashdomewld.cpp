@@ -496,7 +496,8 @@ void clashdomewld::claimtrial(
 void clashdomewld::addcredits(
     name account,
     asset credits,
-    vector<string> unclaimed_actions
+    vector<string> unclaimed_actions,
+    const string&  memo 
 ) {
 
     require_auth(name("clashdomedll"));
