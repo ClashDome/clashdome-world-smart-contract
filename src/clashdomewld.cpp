@@ -1022,6 +1022,10 @@ void clashdomewld::erasetable(
         for (auto itr = partners.begin(); itr != partners.end();) {
             itr = partners.erase(itr);
         }
+    } else if (table_name == "smclaim") {
+        for (auto itr = smclaim.begin(); itr != smclaim.end();) {
+            itr = smclaim.erase(itr);
+        }
     }
 
 }
