@@ -221,6 +221,32 @@ void clashdomewld::unstake(
         ).send();
 
         wallets.erase(wallet_itr);
+    } else if (type == DECORATION_SCHEMA_NAME) {
+
+        auto ac_itr = accounts.find(account.value);
+        check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
+
+        auto decoration_itr = decorations.find(asset_id);
+
+        check(decoration_itr != decorations.end(), "Decoration with id " + to_string(asset_id) + " doesn't exist!");
+        check(decoration_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
+
+        vector<uint64_t> assets;
+        assets.push_back(asset_id);
+
+        action(
+            permission_level{get_self(), name("active")},
+            atomicassets::ATOMICASSETS_ACCOUNT,
+            name("transfer"),
+            std::make_tuple(
+                get_self(),
+                account,
+                assets,
+                "Decoration " + to_string(asset_id) + " unstake."
+            )
+        ).send();
+
+        decorations.erase(decoration_itr);
     }
 }
 
@@ -1379,6 +1405,8 @@ void clashdomewld::receive_asset_transfer(
         }
     } else if (memo == "stake wallet") {
         stakeWallet(asset_ids[0], from, to);
+    } else if (memo == "stake decoration") {
+        stakeDecoration(asset_ids[0], from, to);
     } else if (memo == "get tokens") {
         getTokens(asset_ids[0], from, to);
     } else {
@@ -2196,6 +2224,41 @@ void clashdomewld::stakeWallet(uint64_t asset_id, name from, name to)
         wallet.asset_id = asset_id;
         wallet.owner = from;
         wallet.template_id = asset_itr->template_id;
+    });
+}
+
+void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
+{
+
+    auto ac_itr = accounts.find(from.value);
+    check(ac_itr != accounts.end(), "Stake a citizen first!!");
+
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!");
+
+    atomicassets::assets_t player_assets = atomicassets::get_assets(to);
+    auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
+
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION
+    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
+    check(asset_itr->schema_name == name(DECORATION_SCHEMA_NAME), "NFT doesn't correspond to schema " + DECORATION_SCHEMA_NAME);
+
+    auto decoration_idx = decorations.get_index<name("byowner")>();
+    auto decoration_itr =  decoration_idx.lower_bound(from.value);
+
+    uint64_t count = 0;
+
+    while (decoration_itr != decoration_idx.end() && decoration_itr->owner == from) {
+        count++;
+        decoration_itr++;
+    } 
+
+    check(count < 3, "Maximum decoration elements = 3.");
+
+    decorations.emplace(CONTRACTN, [&](auto& decoration) {
+        decoration.asset_id = asset_id;
+        decoration.owner = from;
+        decoration.template_id = asset_itr->template_id;
     });
 }
 

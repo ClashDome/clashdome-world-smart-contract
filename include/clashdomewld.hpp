@@ -630,12 +630,30 @@ private:
 
     coindailystats_t tokenstats = coindailystats_t(get_self(), get_self().value); 
 
+    // decorations
+    TABLE decorations_s {
+        uint64_t asset_id;
+        name owner;
+        uint32_t template_id;
+        string data;
+
+        uint64_t primary_key() const { return asset_id; }
+        uint64_t by_owner() const { return owner.value; }
+    };
+
+    typedef multi_index<name("decorations"), decorations_s,
+        indexed_by < name("byowner"), const_mem_fun < decorations_s, uint64_t, &decorations_s::by_owner>>> 
+    decorations_t;
+
+    decorations_t decorations = decorations_t(get_self(), get_self().value); 
+
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
     void stakeAvatar(uint64_t asset_ids, name from, name to, string memo);
     void stakeTool(uint64_t asset_ids, name from, name to);
     void stakeWallet(uint64_t asset_ids, name from, name to);
     void stakeSlot(uint64_t asset_ids, name from, name to, string type);
+    void stakeDecoration(uint64_t asset_ids, name from, name to);
     void getTokens(uint64_t asset_ids, name from, name to);
     void burnTokens(asset tokens, string memo_extra);
     void burnTrial(name account);
@@ -654,6 +672,7 @@ private:
     const string TOOL_SCHEMA_NAME = "tool";
     const string SLOT_SCHEMA_NAME = "slot";
     const string WALLET_SCHEMA_NAME = "wallet";
+    const string DECORATION_SCHEMA_NAME = "decoration";
     const string CITIZEN_SCHEMA_NAME = "citizen";
     const string PACKS_SCHEMA_NAME = "packs";
 
