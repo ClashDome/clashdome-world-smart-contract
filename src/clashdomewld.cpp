@@ -1360,6 +1360,111 @@ void clashdomewld::addavatar(
     });
 }
 
+void clashdomewld::sendfreq(
+    name account,
+    name to
+) {
+    require_auth(account);
+
+    // CHECK IF ALREADY ITS YOUR FRIEND
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+        json social_data = json::parse(sc_itr->data);
+        if (social_data.find(to.to_string()) != social_data.end()) {
+            check(social_data[FRIENDS].find(to.to_string()) == social_data[FRIENDS].end(), to.to_string() + " already is your friend.");
+        }
+    }
+
+    // CHECK YOUR REQUEST
+    auto freq_idx = frequests.get_index<name("byfrom")>();
+    auto freq_itr = freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->from == account) {
+        check(freq_itr->to != to, "Friend request to " + to.to_string() + " already sent.");
+        freq_itr++;
+    }
+
+    // CHECK YOUR FUTURE FRIEND REQUESTS
+    freq_idx = frequests.get_index<name("byfrom")>();
+    freq_itr = freq_idx.lower_bound(to.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->from == to) {
+        check(freq_itr->to != account, to.to_string() + " already sent you a friend request.");
+        freq_itr++;
+    } 
+
+    frequests.emplace(CONTRACTN, [&](auto& row) {
+        row.id = frequests.available_primary_key();
+        row.from = account;
+        row.to = to;
+    });
+}
+
+void clashdomewld::acceptfreq(
+    name account,
+    name from
+) {
+    require_auth(account);
+
+    auto freq_idx = frequests.get_index<name("byto")>();
+    auto freq_itr =  freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->to == account) {
+
+        if (freq_itr->from == from) {
+            auto itr = frequests.find(freq_itr->id);
+            frequests.erase(itr);
+            break;
+        } else {
+            freq_itr++;
+        } 
+    }
+
+    addFriend(account, from);
+    addFriend(from, account);
+
+}
+
+void clashdomewld::declinefreq(
+    name account,
+    name from
+) {
+    require_auth(account);
+
+    auto freq_idx = frequests.get_index<name("byto")>();
+    auto freq_itr =  freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->to == account) {
+
+        if (freq_itr->from == from) {
+            auto itr = frequests.find(freq_itr->id);
+            frequests.erase(itr);
+            break;
+        } else {
+            freq_itr++;
+        } 
+    }
+
+}
+
+void clashdomewld::rmfriend(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    auto sc_itr = social.find(account.value);
+
+    json social_data = json::parse(sc_itr->data);
+
+    social_data[FRIENDS].erase(fraccount.to_string());
+
+    social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+        acc.data = social_data.dump();
+    });
+}
+
 void clashdomewld::loggigaswap(
     name acount,
     vector<uint8_t> player_choices,
@@ -1868,9 +1973,6 @@ void clashdomewld::receive_tokens_transfer(
 
             check(pos != -1, "Insufficient materials.");
             check(quantities[pos].amount == shop_itr->price[i].amount, "Invalid materials.");
-
-            // TODO: decidir si se quema o no al comprar
-            // burnTokens(shop_itr->price[i], "Item with template_id " + to_string(template_id) + ".");
             
             updateDailyStats(shop_itr->price[i],0);
         }
@@ -2262,6 +2364,32 @@ void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
     });
 }
 
+void clashdomewld::addFriend(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr == social.end()) {
+
+        json social_data;
+        social_data[FRIENDS][fraccount.to_string()] = 1;
+
+        social.emplace(CONTRACTN, [&](auto& acc) {
+            acc.account = account;
+            acc.data = social_data.dump();
+        });
+
+    } else {
+
+        json social_data = json::parse(sc_itr->data);
+
+        social_data[FRIENDS][fraccount.to_string()] = 1;
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
+}
+
 void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
 {
 
@@ -2366,8 +2494,6 @@ void clashdomewld::burnTrial(name account)
         accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
             acc.unclaimed_credits.amount += trial_itr->credits.amount;
         });
-
-        // TODO: consumir stamina y bateria?
 
         trials.erase(trial_itr);
     }

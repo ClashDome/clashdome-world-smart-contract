@@ -191,6 +191,22 @@ public:
         name acount,
         string avatar
     );
+    ACTION sendfreq(
+        name account,
+        name to
+    );
+    ACTION acceptfreq(
+        name account,
+        name from
+    );
+    ACTION declinefreq(
+        name account,
+        name from
+    );
+    ACTION rmfriend(
+        name account,
+        name fraccount
+    );
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
@@ -647,6 +663,24 @@ private:
 
     decorations_t decorations = decorations_t(get_self(), get_self().value); 
 
+    // friends requests
+    TABLE frequests_s {
+        uint64_t id;
+        name from;
+        name to;
+
+        uint64_t primary_key() const { return id; }
+        uint64_t by_from() const { return from.value; }
+        uint64_t by_to() const { return to.value; }
+    };
+
+    typedef multi_index<name("frequests"), frequests_s,
+        indexed_by < name("byfrom"), const_mem_fun < frequests_s, uint64_t, &frequests_s::by_from>>,
+        indexed_by < name("byto"), const_mem_fun < frequests_s, uint64_t, &frequests_s::by_to>>> 
+    frequests_t;
+
+    frequests_t frequests = frequests_t(get_self(), get_self().value); 
+
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
     void stakeAvatar(uint64_t asset_ids, name from, name to, string memo);
@@ -660,6 +694,8 @@ private:
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
+    void addFriend(name account, name fraccount);
+    bool checkFriend(name account, name fraccount);
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
 
@@ -697,6 +733,7 @@ private:
     const string TWITTER = "tw";
     const string TELEGRAM = "tg";
     const string DISCORD = "dc";
+    const string FRIENDS = "fr";
 
     enum ChoiceType {ROCK = 0, PAPER, SCISSORS};
     enum StatusType {PENDING = 0, DONE};
