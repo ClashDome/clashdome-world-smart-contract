@@ -89,6 +89,17 @@ public:
     ACTION eraseshopit(
         uint32_t template_id
     );
+    ACTION addtowl(
+        uint32_t template_id,
+        vector<name> accounts_to_add
+    );
+    ACTION erasefromwl(
+        uint32_t template_id,
+        name account_to_remove
+    );
+    ACTION clearwl(
+        uint32_t template_id
+    );
     ACTION settoolconfig(
         uint32_t template_id,
         string tool_name,
@@ -387,6 +398,7 @@ private:
         vector<asset> price;
         string description;
         string extra_data;
+        vector<name> whitelist;
 
         uint64_t primary_key() const { return template_id; }
     };
@@ -649,6 +661,7 @@ private:
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
+    uint64_t finder(vector<name> whitelist, name account); 
     void stakeAvatar(uint64_t asset_ids, name from, name to, string memo);
     void stakeTool(uint64_t asset_ids, name from, name to);
     void stakeWallet(uint64_t asset_ids, name from, name to);

@@ -727,6 +727,56 @@ void clashdomewld::eraseshopit(
     shop.erase(shop_itr);
 }
 
+void clashdomewld::addtowl (
+    uint32_t template_id,
+    vector<name> accounts_to_add
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.whitelist.insert(row.whitelist.end(), accounts_to_add.begin(), accounts_to_add.end());
+    });
+}
+
+void clashdomewld::erasefromwl (
+    uint32_t template_id,
+    name account_to_remove
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    uint64_t pos = finder(shop_itr->whitelist, account_to_remove);
+
+    if (pos != -1) {
+        shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+            row.whitelist.erase(row.whitelist.begin() + pos);
+        });
+    }
+}
+
+void clashdomewld::clearwl (
+    uint32_t template_id
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    vector<name> empty_v;
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.whitelist = empty_v;
+    });
+}
+
 void clashdomewld::settoolconfig(
     uint32_t template_id,
         string tool_name,
@@ -1830,6 +1880,10 @@ void clashdomewld::receive_tokens_transfer(
         auto shop_itr = shop.find(template_id);
         check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
 
+        uint64_t pos = finder(shop_itr->whitelist, from);
+
+        check(pos != -1 || shop_itr->whitelist.size() == 0, "Account " + from.to_string() + " isn't in the whitelist.");
+
         check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
@@ -1986,6 +2040,18 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
     for (uint64_t i = 0; i < assets.size(); i++)
     {
         if (assets.at(i).symbol == symbol)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+uint64_t clashdomewld::finder(vector<name> whitelist, name account)
+{
+    for (uint64_t i = 0; i < whitelist.size(); i++)
+    {
+        if (whitelist.at(i) == account)
         {
             return i;
         }
