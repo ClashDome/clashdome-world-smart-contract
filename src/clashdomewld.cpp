@@ -519,6 +519,68 @@ void clashdomewld::claimtrial(
     ).send();
 }
 
+void clashdomewld::claimhalltr(
+    name account,
+    uint64_t asset_id
+) {
+    require_auth(account);
+
+    name affiliate = name("clashdomewld");
+
+    auto af_itr = affiliates.find(affiliate.value);
+    check(af_itr != affiliates.end(), "Affiliated " + affiliate.to_string() + " doesn't exist!");
+    check(af_itr->available_trials > 0, "Affiliated " + affiliate.to_string() + " has no trials availables!");
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already has a citizen!");
+
+    auto tr_itr = trials.find(account.value);
+    check(tr_itr == trials.end(), "Account with name " + account.to_string() + " already has a trial!");
+
+    atomicassets::assets_t player_assets = atomicassets::get_assets(account);
+    auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
+
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
+    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
+    check(asset_itr->schema_name == name(HALLS_SCHEMA_NAME), "NFT doesn't correspond to schema " + HALLS_SCHEMA_NAME);
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+
+    trials.emplace(CONTRACTN, [&](auto& trial) {
+        trial.account = account;
+        trial.credits = credits;
+        trial.staked = false;
+        trial.full = false;
+    });
+
+    affiliates.modify(af_itr, CONTRACTN, [&](auto& affiliate) {
+        affiliate.available_trials--;
+    });
+
+    atomicassets::ATTRIBUTE_MAP mdata = {};
+    mdata["affiliate"] = affiliate.to_string();
+
+    // mint and send trial
+    action (
+        permission_level{get_self(), name("active")},
+        atomicassets::ATOMICASSETS_ACCOUNT,
+        name("mintasset"),
+        std::make_tuple(
+            get_self(),
+            name(COLLECTION_NAME),
+            name(CITIZEN_SCHEMA_NAME),
+            TRIAL_TEMPLATE_ID,
+            account,
+            (atomicassets::ATTRIBUTE_MAP) {},
+            mdata,
+            (vector <asset>) {}
+        )
+    ).send();
+
+}
+
 void clashdomewld::addcredits(
     name account,
     asset credits,

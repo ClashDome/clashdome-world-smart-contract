@@ -46,6 +46,10 @@ public:
         name account,
         name afiliate
     );
+    ACTION claimhalltr(
+        name account,
+        uint64_t asset_id
+    );
     ACTION addcredits(
         name account,
         asset credits,
@@ -687,6 +691,7 @@ private:
     const string WALLET_SCHEMA_NAME = "wallet";
     const string DECORATION_SCHEMA_NAME = "decoration";
     const string CITIZEN_SCHEMA_NAME = "citizen";
+    const string HALLS_SCHEMA_NAME = "poolhalls";
     const string PACKS_SCHEMA_NAME = "packs";
 
     // mainnet
