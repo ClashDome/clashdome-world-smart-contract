@@ -104,6 +104,10 @@ public:
     ACTION clearwl(
         uint32_t template_id
     );
+    ACTION setaclimitwl(
+        uint32_t template_id,
+        int32_t account_limit
+    );
     ACTION settoolconfig(
         uint32_t template_id,
         string tool_name,

@@ -839,6 +839,22 @@ void clashdomewld::clearwl (
     });
 }
 
+
+void clashdomewld::setaclimitwl (
+    uint32_t template_id,
+    int32_t account_limit
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.account_limit = account_limit;
+    });
+}
+
 void clashdomewld::settoolconfig(
     uint32_t template_id,
         string tool_name,
