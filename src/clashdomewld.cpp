@@ -1740,7 +1740,7 @@ void clashdomewld::receive_tokens_transfer(
 
         for (auto i = 0; i < quantities.size(); i++) {
             if (quantities[i].amount > 0) {
-                check(quantities[i].amount <= 30000000, "Sorry. GigaSwap is limited to 3,000 tokens");
+                check(quantities[i].amount <= 5000000, "Sorry. GigaSwap is limited to 500 tokens");
             }
         }
 
