@@ -2387,17 +2387,17 @@ void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
     check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
     check(asset_itr->schema_name == name(DECORATION_SCHEMA_NAME), "NFT doesn't correspond to schema " + DECORATION_SCHEMA_NAME);
 
-    auto decoration_idx = decorations.get_index<name("byowner")>();
-    auto decoration_itr =  decoration_idx.lower_bound(from.value);
+    // auto decoration_idx = decorations.get_index<name("byowner")>();
+    // auto decoration_itr =  decoration_idx.lower_bound(from.value);
 
-    uint64_t count = 0;
+    // uint64_t count = 0;
 
-    while (decoration_itr != decoration_idx.end() && decoration_itr->owner == from) {
-        count++;
-        decoration_itr++;
-    } 
+    // while (decoration_itr != decoration_idx.end() && decoration_itr->owner == from) {
+    //     count++;
+    //     decoration_itr++;
+    // } 
 
-    check(count < 3, "Maximum decoration elements = 3.");
+    // check(count < 3, "Maximum decoration elements = 3.");
 
     decorations.emplace(CONTRACTN, [&](auto& decoration) {
         decoration.asset_id = asset_id;
