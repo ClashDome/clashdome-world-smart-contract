@@ -1097,6 +1097,19 @@ void clashdomewld::eraseaccount(
     accounts.erase(acc_itr);
 }
 
+void clashdomewld::erasecitiz(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = citiz.find(account.value);
+
+    check(acc_itr != citiz.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    citiz.erase(acc_itr);
+}
+
 void clashdomewld::erasetrial(
     name account
 ) {

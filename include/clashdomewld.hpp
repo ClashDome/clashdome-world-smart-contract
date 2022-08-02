@@ -171,6 +171,9 @@ public:
     ACTION eraseaccount(
         name account
     );
+    ACTION erasecitiz(
+        name account
+    );
     ACTION erasetrial(
         name account
     );
