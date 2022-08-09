@@ -1242,6 +1242,24 @@ void clashdomewld::settrialcr(
     });
 }
 
+void clashdomewld::setdecdata(
+    uint64_t asset_id,
+    name account,
+    string data
+) {
+
+    require_auth(account);
+
+    auto decoration_itr = decorations.find(asset_id);
+
+    check(decoration_itr != decorations.end(), "Decoration with id " + to_string(asset_id) + " doesn't exist!");
+    check(decoration_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
+
+    decorations.modify(decoration_itr, CONTRACTN, [&](auto& decoration) {
+        decoration.data = data;
+    });
+}
+
 void clashdomewld::initgsconf()
 {
 

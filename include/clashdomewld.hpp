@@ -195,6 +195,11 @@ public:
         name account,
         asset credits
     );
+    ACTION setdecdata(
+        uint64_t asset_id,
+        name account,
+        string data
+    );
     ACTION addcitizen(
         name account,   
         uint8_t type,
@@ -213,6 +218,7 @@ public:
         name acount,
         string avatar
     );
+    
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
