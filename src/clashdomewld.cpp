@@ -1993,7 +1993,7 @@ void clashdomewld::receive_tokens_transfer(
 
         check(pos != -1 || shop_itr->whitelist.size() == 0, "Account " + from.to_string() + " isn't in the whitelist.");
 
-        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+        check(shop_itr->max_claimable == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
@@ -2038,9 +2038,13 @@ void clashdomewld::receive_tokens_transfer(
             updateDailyStats(shop_itr->price[i],0);
         }
 
-        if (shop_itr->available_items != -1) {
+        if (shop_itr->max_claimable != -1) {
             shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
                 item.available_items--;
+            });
+        } else {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items++;
             });
         }
 
@@ -2085,7 +2089,7 @@ void clashdomewld::receive_wax_transfer(
         auto shop_itr = shop.find(template_id);
         check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
 
-        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+        check(shop_itr->max_claimable == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
         auto smclaim_itr = smclaim.find(from.value);
 
@@ -2119,9 +2123,13 @@ void clashdomewld::receive_wax_transfer(
         check(shop_itr->timestamp_start < timestamp, "Item " + to_string(template_id) + " isn't available yet!");
         check(shop_itr->timestamp_end > timestamp, "Item " + to_string(template_id) + " is no longer available!");
 
-        if (shop_itr->available_items != -1) {
+        if (shop_itr->max_claimable != -1) {
             shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
                 item.available_items--;
+            });
+        } else {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items++;
             });
         }
 
