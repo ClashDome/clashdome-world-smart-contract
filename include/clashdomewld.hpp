@@ -685,27 +685,26 @@ private:
 
     //earn 
     TABLE earnTable_s{
-        uint64_t key;
+
         name account;
-        uint64_t APY;
-        asset staked_LUDIO;
-        uint64_t timestamp_LUDIO;
-        //float APY_LUDIO;
-        asset staked_CDCARBZ;
-        uint64_t timestamp_CDCARBZ;
-        //float APY_CDCARBZ;
-        asset staked_CDJIGO;
-        uint64_t timestamp_CDJIGO;
+        vector<string> earn_staked;
+        
+        // uint64_t APY;
+        // asset staked_LUDIO;
+        // uint64_t timestamp_LUDIO;
+        // //float APY_LUDIO;
+        // asset staked_CDCARBZ;
+        // uint64_t timestamp_CDCARBZ;
+        // //float APY_CDCARBZ;
+        // asset staked_CDJIGO;
+        // uint64_t timestamp_CDJIGO;
         //float APY_CDJIGO;
 
-        uint64_t primary_key() const { return key; }
-        //uint128_t primary_key() const { return ((uint128_t)APY << 64) & account.value; }
-        uint64_t by_key() const { return APY ; }
+        uint64_t primary_key() const { return account.value; }
+
     };
 
-    typedef multi_index<name("earntable"), earnTable_s,
-    indexed_by < name("bykey"), const_mem_fun < earnTable_s, uint64_t, &earnTable_s::by_key>>> 
-    earnTable_t;
+    typedef multi_index<name("earntables"), earnTable_s> earnTable_t;
 
     earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
 
