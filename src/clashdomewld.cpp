@@ -2731,21 +2731,24 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
 void clashdomewld::earnstake(
     name account,
     asset staking,
-    int8_t type
+    uint64_t type
 ) { 
 
-    check( 0< type && type <4, "Type out of range ");    
+    //check( 0< type && type <4, "Type out of range ");    
 
     float amount= staking.amount;
     symbol symbol= staking.symbol;
 
     check(symbol == CDCARBZ_SYMBOL || symbol== CDJIGO_SYMBOL || symbol == LUDIO_SYMBOL, "The staked asset is not available");
 
-    auto ptearntableitr = earntable.find(2 + account.value);
+    uint64_t composite_key = type + account.value;
+    auto ptearntableitr = earntable.find(composite_key);
 
-    //check( ptearntableitr != earntable.end() , "errot debug" + to_string(ptearntableitr->timestamp_LUDIO) );
+    //check( 1 != 1 , "errot debug" + to_string(type + account.value) +  " bool " + to_string(a) );
 
     int APYs[3] = {1,2,3};
+
+    
 
     if (ptearntableitr == earntable.end()) {
 
@@ -2753,8 +2756,9 @@ void clashdomewld::earnstake(
         nullasset.amount=0.0000;
         nullasset.symbol=LUDIO_SYMBOL;
         ptearntableitr = earntable.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.key = composite_key;
             new_a.account = account;
-            new_a.APY = APYs[type];
+            new_a.APY = type;
             new_a.staked_LUDIO = nullasset;
             new_a.timestamp_LUDIO = 0;
             //new_a.APY_LUDIO = 0;
@@ -2770,6 +2774,8 @@ void clashdomewld::earnstake(
             //new_a.APY_CDJIGO = 0;
             
         });
+
+        check(ptearntableitr == earntable.end(),"user not found" + to_string(ptearntableitr));
     }
 
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
@@ -2800,9 +2806,7 @@ void clashdomewld::earnstake(
     }
 }
 
-void clashdomewld::earnunstake(name account , string asset_name){
-
-
+void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
     //APY to % map 
     std::map<int, float> APY_to_Percent = {
         { 1, 1.0 },
@@ -2814,10 +2818,9 @@ void clashdomewld::earnunstake(name account , string asset_name){
     symbol asset_symbol = symbol(symbol_code(asset_name), 4);
     check(asset_symbol == CDCARBZ_SYMBOL || asset_symbol== CDJIGO_SYMBOL || asset_symbol == LUDIO_SYMBOL, "not valid asseet" );
 
-    auto ptearntableitr = earntable.find(2 + account.value);
-
+    uint64_t composite_key = ((uint128_t)type << 64) & account.value;
+    auto ptearntableitr = earntable.find(composite_key);
     check( ptearntableitr != earntable.end(), "You don't have any asset staked");
-
 
     float stakedAmount;
     uint64_t stakingTimestamp;

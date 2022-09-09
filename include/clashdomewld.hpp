@@ -231,7 +231,8 @@ public:
 
     ACTION earnunstake(
         name account,
-        string asset_name
+        string asset_name,
+        uint64_t type
     );
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
@@ -684,7 +685,7 @@ private:
 
     //earn 
     TABLE earnTable_s{
-
+        uint64_t key;
         name account;
         uint64_t APY;
         asset staked_LUDIO;
@@ -697,12 +698,13 @@ private:
         uint64_t timestamp_CDJIGO;
         //float APY_CDJIGO;
 
-        uint64_t primary_key() const { return APY + account.value; }
-        uint64_t by_api() const { return APY ; }
+        uint64_t primary_key() const { return key; }
+        //uint128_t primary_key() const { return ((uint128_t)APY << 64) & account.value; }
+        uint64_t by_key() const { return APY ; }
     };
 
     typedef multi_index<name("earntable"), earnTable_s,
-    indexed_by < name("byapi"), const_mem_fun < earnTable_s, uint64_t, &earnTable_s::by_api>>> 
+    indexed_by < name("bykey"), const_mem_fun < earnTable_s, uint64_t, &earnTable_s::by_key>>> 
     earnTable_t;
 
     earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
@@ -722,7 +724,7 @@ private:
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
-    void earnstake( name acount, asset staking, int8_t type); // stake tokens functons
+    void earnstake( name acount, asset staking, uint64_t type); // stake tokens functons
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
     float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY);
