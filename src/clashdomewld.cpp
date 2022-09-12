@@ -2390,6 +2390,23 @@ void clashdomewld::addFriend(name account, name fraccount)
     }
 }
 
+bool clashdomewld::checkFriend(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+
+        json social_data = json::parse(sc_itr->data);
+        if (social_data[FRIENDS][fraccount.to_string()]) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
 {
 
