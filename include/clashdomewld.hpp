@@ -46,6 +46,10 @@ public:
         name account,
         name afiliate
     );
+    ACTION claimhalltr(
+        name account,
+        uint64_t asset_id
+    );
     ACTION addcredits(
         name account,
         asset credits,
@@ -88,6 +92,21 @@ public:
     );
     ACTION eraseshopit(
         uint32_t template_id
+    );
+    ACTION addtowl(
+        uint32_t template_id,
+        vector<name> accounts_to_add
+    );
+    ACTION erasefromwl(
+        uint32_t template_id,
+        name account_to_remove
+    );
+    ACTION clearwl(
+        uint32_t template_id
+    );
+    ACTION setaclimitwl(
+        uint32_t template_id,
+        int32_t account_limit
     );
     ACTION settoolconfig(
         uint32_t template_id,
@@ -152,6 +171,9 @@ public:
     ACTION eraseaccount(
         name account
     );
+    ACTION erasecitiz(
+        name account
+    );
     ACTION erasetrial(
         name account
     );
@@ -172,6 +194,11 @@ public:
     ACTION settrialcr(
         name account,
         asset credits
+    );
+    ACTION setdecdata(
+        uint64_t asset_id,
+        name account,
+        string data
     );
     ACTION addcitizen(
         name account,   
@@ -403,6 +430,7 @@ private:
         vector<asset> price;
         string description;
         string extra_data;
+        vector<name> whitelist;
 
         uint64_t primary_key() const { return template_id; }
     };
@@ -683,6 +711,7 @@ private:
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
+    uint64_t finder(vector<name> whitelist, name account); 
     void stakeAvatar(uint64_t asset_ids, name from, name to, string memo);
     void stakeTool(uint64_t asset_ids, name from, name to);
     void stakeWallet(uint64_t asset_ids, name from, name to);
@@ -710,6 +739,7 @@ private:
     const string WALLET_SCHEMA_NAME = "wallet";
     const string DECORATION_SCHEMA_NAME = "decoration";
     const string CITIZEN_SCHEMA_NAME = "citizen";
+    const string HALLS_SCHEMA_NAME = "poolhalls";
     const string PACKS_SCHEMA_NAME = "packs";
 
     // mainnet

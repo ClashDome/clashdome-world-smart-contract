@@ -519,6 +519,68 @@ void clashdomewld::claimtrial(
     ).send();
 }
 
+void clashdomewld::claimhalltr(
+    name account,
+    uint64_t asset_id
+) {
+    require_auth(account);
+
+    name affiliate = name("clashdomewld");
+
+    auto af_itr = affiliates.find(affiliate.value);
+    check(af_itr != affiliates.end(), "Affiliated " + affiliate.to_string() + " doesn't exist!");
+    check(af_itr->available_trials > 0, "Affiliated " + affiliate.to_string() + " has no trials availables!");
+
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr == accounts.end(), "Account with name " + account.to_string() + " already has a citizen!");
+
+    auto tr_itr = trials.find(account.value);
+    check(tr_itr == trials.end(), "Account with name " + account.to_string() + " already has a trial!");
+
+    atomicassets::assets_t player_assets = atomicassets::get_assets(account);
+    auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
+
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
+    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
+    check(asset_itr->schema_name == name(HALLS_SCHEMA_NAME), "NFT doesn't correspond to schema " + HALLS_SCHEMA_NAME);
+
+    asset credits;
+    credits.symbol = CREDITS_SYMBOL;
+    credits.amount = 0;
+
+    trials.emplace(CONTRACTN, [&](auto& trial) {
+        trial.account = account;
+        trial.credits = credits;
+        trial.staked = false;
+        trial.full = false;
+    });
+
+    affiliates.modify(af_itr, CONTRACTN, [&](auto& affiliate) {
+        affiliate.available_trials--;
+    });
+
+    atomicassets::ATTRIBUTE_MAP mdata = {};
+    mdata["affiliate"] = affiliate.to_string();
+
+    // mint and send trial
+    action (
+        permission_level{get_self(), name("active")},
+        atomicassets::ATOMICASSETS_ACCOUNT,
+        name("mintasset"),
+        std::make_tuple(
+            get_self(),
+            name(COLLECTION_NAME),
+            name(CITIZEN_SCHEMA_NAME),
+            TRIAL_TEMPLATE_ID,
+            account,
+            (atomicassets::ATTRIBUTE_MAP) {},
+            mdata,
+            (vector <asset>) {}
+        )
+    ).send();
+
+}
+
 void clashdomewld::addcredits(
     name account,
     asset credits,
@@ -725,6 +787,72 @@ void clashdomewld::eraseshopit(
     check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
 
     shop.erase(shop_itr);
+}
+
+void clashdomewld::addtowl (
+    uint32_t template_id,
+    vector<name> accounts_to_add
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.whitelist.insert(row.whitelist.end(), accounts_to_add.begin(), accounts_to_add.end());
+    });
+}
+
+void clashdomewld::erasefromwl (
+    uint32_t template_id,
+    name account_to_remove
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    uint64_t pos = finder(shop_itr->whitelist, account_to_remove);
+
+    if (pos != -1) {
+        shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+            row.whitelist.erase(row.whitelist.begin() + pos);
+        });
+    }
+}
+
+void clashdomewld::clearwl (
+    uint32_t template_id
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    vector<name> empty_v;
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.whitelist = empty_v;
+    });
+}
+
+
+void clashdomewld::setaclimitwl (
+    uint32_t template_id,
+    int32_t account_limit
+) {
+    require_auth(get_self());
+
+    auto shop_itr = shop.find(template_id);
+
+    check(shop_itr != shop.end(), "Item with template " + to_string(template_id) + " doesn't exist!");
+
+    shop.modify(shop_itr, CONTRACTN, [&](auto& row) {
+        row.account_limit = account_limit;
+    });
 }
 
 void clashdomewld::settoolconfig(
@@ -969,6 +1097,19 @@ void clashdomewld::eraseaccount(
     accounts.erase(acc_itr);
 }
 
+void clashdomewld::erasecitiz(
+    name account
+) {
+
+    require_auth(get_self());
+
+    auto acc_itr = citiz.find(account.value);
+
+    check(acc_itr != citiz.end(), "Account " + account.to_string() + " doesn't exist!");
+
+    citiz.erase(acc_itr);
+}
+
 void clashdomewld::erasetrial(
     name account
 ) {
@@ -1098,6 +1239,24 @@ void clashdomewld::settrialcr(
     trials.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.credits = credits;
         acc.full = credits.amount >= TRIAL_MAX_UNCLAIMED;
+    });
+}
+
+void clashdomewld::setdecdata(
+    uint64_t asset_id,
+    name account,
+    string data
+) {
+
+    require_auth(account);
+
+    auto decoration_itr = decorations.find(asset_id);
+
+    check(decoration_itr != decorations.end(), "Decoration with id " + to_string(asset_id) + " doesn't exist!");
+    check(decoration_itr->owner == account, "Account " + account.to_string() + " isn't the owner of asset " + to_string(asset_id));
+
+    decorations.modify(decoration_itr, CONTRACTN, [&](auto& decoration) {
+        decoration.data = data;
     });
 }
 
@@ -1717,7 +1876,7 @@ void clashdomewld::receive_tokens_transfer(
 
         for (auto i = 0; i < quantities.size(); i++) {
             if (quantities[i].amount > 0) {
-                check(quantities[i].amount <= 30000000, "Sorry. GigaSwap is limited to 3,000 tokens");
+                check(quantities[i].amount <= 5000000, "Sorry. GigaSwap is limited to 500 tokens");
             }
         }
 
@@ -1935,7 +2094,11 @@ void clashdomewld::receive_tokens_transfer(
         auto shop_itr = shop.find(template_id);
         check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
 
-        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+        uint64_t pos = finder(shop_itr->whitelist, from);
+
+        check(pos != -1 || shop_itr->whitelist.size() == 0, "Account " + from.to_string() + " isn't in the whitelist.");
+
+        check(shop_itr->max_claimable == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
         uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
@@ -1977,9 +2140,13 @@ void clashdomewld::receive_tokens_transfer(
             updateDailyStats(shop_itr->price[i],0);
         }
 
-        if (shop_itr->available_items != -1) {
+        if (shop_itr->max_claimable != -1) {
             shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
                 item.available_items--;
+            });
+        } else {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items++;
             });
         }
 
@@ -2024,7 +2191,7 @@ void clashdomewld::receive_wax_transfer(
         auto shop_itr = shop.find(template_id);
         check(shop_itr != shop.end(), "Item with template id " + to_string(template_id) + " doesn't exist!");
 
-        check(shop_itr->available_items == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
+        check(shop_itr->max_claimable == -1 || shop_itr->available_items > 0, "Item " + to_string(template_id) + " is out of stock!");
 
         auto smclaim_itr = smclaim.find(from.value);
 
@@ -2058,9 +2225,13 @@ void clashdomewld::receive_wax_transfer(
         check(shop_itr->timestamp_start < timestamp, "Item " + to_string(template_id) + " isn't available yet!");
         check(shop_itr->timestamp_end > timestamp, "Item " + to_string(template_id) + " is no longer available!");
 
-        if (shop_itr->available_items != -1) {
+        if (shop_itr->max_claimable != -1) {
             shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
                 item.available_items--;
+            });
+        } else {
+            shop.modify(shop_itr, CONTRACTN, [&](auto& item) {
+                item.available_items++;
             });
         }
 
@@ -2088,6 +2259,18 @@ uint64_t clashdomewld::finder(vector<asset> assets, symbol symbol)
     for (uint64_t i = 0; i < assets.size(); i++)
     {
         if (assets.at(i).symbol == symbol)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+uint64_t clashdomewld::finder(vector<name> whitelist, name account)
+{
+    for (uint64_t i = 0; i < whitelist.size(); i++)
+    {
+        if (whitelist.at(i) == account)
         {
             return i;
         }
@@ -2345,17 +2528,17 @@ void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
     check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
     check(asset_itr->schema_name == name(DECORATION_SCHEMA_NAME), "NFT doesn't correspond to schema " + DECORATION_SCHEMA_NAME);
 
-    auto decoration_idx = decorations.get_index<name("byowner")>();
-    auto decoration_itr =  decoration_idx.lower_bound(from.value);
+    // auto decoration_idx = decorations.get_index<name("byowner")>();
+    // auto decoration_itr =  decoration_idx.lower_bound(from.value);
 
-    uint64_t count = 0;
+    // uint64_t count = 0;
 
-    while (decoration_itr != decoration_idx.end() && decoration_itr->owner == from) {
-        count++;
-        decoration_itr++;
-    } 
+    // while (decoration_itr != decoration_idx.end() && decoration_itr->owner == from) {
+    //     count++;
+    //     decoration_itr++;
+    // } 
 
-    check(count < 3, "Maximum decoration elements = 3.");
+    // check(count < 3, "Maximum decoration elements = 3.");
 
     decorations.emplace(CONTRACTN, [&](auto& decoration) {
         decoration.asset_id = asset_id;
@@ -2581,6 +2764,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
 
     if (ptokenstatsitr == tokenstats.end()) {
 
+        tokenstats.erase(tokenstats.begin());                 //We delete the oldest row in the table
 
         ptokenstatsitr = tokenstats.emplace(CONTRACTN, [&](auto &new_d) {
             new_d.day = day;
