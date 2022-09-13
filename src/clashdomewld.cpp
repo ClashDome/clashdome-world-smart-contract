@@ -1819,6 +1819,29 @@ void clashdomewld::receive_token_transfer(
         check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid token symbol.");
         check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
         parseSocialsMemo(from, memo);
+    } else if (memo.find("send_friend_request") != string::npos){
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string fraccount = memo.substr(fb + 1);
+
+        check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
+        check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
+
+        sendfreq(from, name(fraccount));
+
+        
+    } else if (memo.find("accept_friend_request") != string::npos){
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string fraccount = memo.substr(fb + 1);
+
+        check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
+        check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
+
+        acceptfreq(from, name(fraccount));
+        
     } else {
         check(memo == "transfer", "Invalid memo.");
     }

@@ -218,14 +218,6 @@ public:
         name acount,
         string avatar
     );
-    ACTION sendfreq(
-        name account,
-        name to
-    );
-    ACTION acceptfreq(
-        name account,
-        name from
-    );
     ACTION declinefreq(
         name account,
         name from
@@ -274,6 +266,32 @@ public:
 private:
 
     // TABLES 
+
+    // TODO: remove
+    //earn 
+    TABLE earnTable_s{
+
+        name account;
+        uint64_t APY;
+        asset staked_LUDIO;
+        uint64_t timestamp_LUDIO;
+        //float APY_LUDIO;
+        asset staked_CDCARBZ;
+        uint64_t timestamp_CDCARBZ;
+        //float APY_CDCARBZ;
+        asset staked_CDJIGO;
+        uint64_t timestamp_CDJIGO;
+        //float APY_CDJIGO;
+
+        uint64_t primary_key() const { return APY + account.value; }
+        uint64_t by_api() const { return APY ; }
+    };
+
+    typedef multi_index<name("earntable"), earnTable_s,
+    indexed_by < name("byapi"), const_mem_fun < earnTable_s, uint64_t, &earnTable_s::by_api>>> 
+    earnTable_t;
+
+    earnTable_t earntable = earnTable_t(get_self(), get_self().value);
 
     // social
     TABLE social_s {
@@ -723,6 +741,8 @@ private:
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
+    void sendfreq(name account, name to);
+    void acceptfreq(name account, name to);
     void addFriend(name account, name fraccount);
     bool checkFriend(name account, name fraccount);
     symbol tokenConversion(symbol s1);
@@ -782,4 +802,8 @@ private:
     static constexpr symbol LUDIO_SYMBOL = symbol(symbol_code("LUDIO"), 4);
     static constexpr symbol CDCARBZ_SYMBOL = symbol(symbol_code("CDCARBZ"), 4);
     static constexpr symbol CDJIGO_SYMBOL = symbol(symbol_code("CDJIGO"), 4);
+
+    // FRIENDS
+    const asset FRIENDS_REQUEST_FEE = asset(150000, CDJIGO_SYMBOL);
+
 };
