@@ -2736,7 +2736,11 @@ void clashdomewld::earnstake(
 
     //check( 0< type && type <4, "Type out of range ");    
 
-    float amount= staking.amount/10000;
+    float amount= atoi(staking.amount) / 10000.0;
+
+    float pow_10 = pow(10.0f, (float)4);
+    amount = round( staking.amount ) / pow_10; 
+     
     symbol symbol= staking.symbol;
 
     check(symbol == CDCARBZ_SYMBOL || symbol== CDJIGO_SYMBOL || symbol == LUDIO_SYMBOL, "The staked asset is not available");
@@ -2794,10 +2798,11 @@ void clashdomewld::earnstake(
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
 
     int pos = type -1; // position on the array
+    json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
+
 
     if(symbol == LUDIO_SYMBOL){
 
-        json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
         stake_data["staked_LUDIO"] = amount;
         stake_data["timestamp_LUDIO"] = timestamp;
 
@@ -2809,7 +2814,6 @@ void clashdomewld::earnstake(
 
     }else if(symbol == CDCARBZ_SYMBOL){
 
-        json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
         stake_data["staked_CDCARBZ"] = amount;
         stake_data["timestamp_CDCARBZ"] = timestamp;
 
@@ -2821,7 +2825,6 @@ void clashdomewld::earnstake(
 
     }else if ( symbol == CDJIGO_SYMBOL){
 
-        json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
         stake_data["staked_CDJIGO"] = amount;
         stake_data["timestamp_CDJIGO"] = timestamp;
 
@@ -2841,17 +2844,36 @@ void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
         { 3, 3.0 }
         };
 
-    // require_auth(account);
-    // symbol asset_symbol = symbol(symbol_code(asset_name), 4);
-    // check(asset_symbol == CDCARBZ_SYMBOL || asset_symbol== CDJIGO_SYMBOL || asset_symbol == LUDIO_SYMBOL, "not valid asseet" );
+    // std::map<symbol, string> APY_to_Percent = {
+    //     { CREDITS_SYMBOL, "1.0" },
+    //     { CARBZ_SYMBOL, 2.0 },
+    //     { JIGOWATTS_SYMBOL, 3.0 }
+    //     };
 
-    // uint64_t composite_key = ((uint128_t)type << 64) & account.value;
-    // auto ptearntableitr = earntable.find(composite_key);
-    // check( ptearntableitr != earntable.end(), "You don't have any asset staked");
+    require_auth(account);
+    symbol asset_symbol = symbol(symbol_code(asset_name), 4);
+    check(asset_symbol == CDCARBZ_SYMBOL || asset_symbol== CDJIGO_SYMBOL || asset_symbol == LUDIO_SYMBOL, "not valid asseet" );
 
-    // float stakedAmount;
-    // uint64_t stakingTimestamp;
-    // int APY = APY_to_Percent[ptearntableitr->APY];
+    auto ptearntableitr = earntable.find(account.value);
+    check( ptearntableitr != earntable.end(), "You don't have any asset staked");
+
+    int pos = type -1; // position on the array
+    json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
+
+    int APY = APY_to_Percent[type];
+
+    float stakedAmount = stake_data["staked_"+asset_name];
+    stakedAmount  = stakedAmount *10000.0;
+    uint64_t stakingTimestamp = stake_data["timestamp_"+asset_name];
+
+    stake_data["staked_"+asset_name] = 0.0;
+    stake_data["timestamp_"+asset_name] = 0;
+
+    string stake_data_str = stake_data.dump();
+
+        earntable.modify(ptearntableitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.earn_staked.at(pos) = stake_data_str;
+        });
 
     // if (asset_symbol == LUDIO_SYMBOL){
 
@@ -2887,25 +2909,25 @@ void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
     //         //account_itr.APY_CDJIGO = 0.0;
     //     });
     // }
-    // check(stakedAmount >0.0 && stakingTimestamp > 0 , "You have not staked that asset yet!" );
-    // float returns = getEarnReturns(stakedAmount, stakingTimestamp, APY); 
+    check(stakedAmount >0.0 && stakingTimestamp > 0 , "You have not staked this asset yet!" );
+    float returns = getEarnReturns(stakedAmount, stakingTimestamp, APY); 
 
-    // asset quantity;
+    asset quantity;
     
-    // quantity.symbol = asset_symbol;
-    // quantity.amount = returns;
+    quantity.symbol = asset_symbol;
+    quantity.amount = returns;
 
-    // action(
-    //     permission_level{get_self(), name("active")},
-    //     name("clashdometkn"),
-    //     name("transfer"),
-    //     std::make_tuple(
-    //         get_self(),
-    //         account,
-    //         quantity,
-    //         "Withdraw " + account.to_string()
-    //     )
-    // ).send();
+    action(
+        permission_level{get_self(), name("active")},
+        name("clashdometkn"),
+        name("transfer"),
+        std::make_tuple(
+            get_self(),
+            account,
+            quantity,
+            "Withdraw " + account.to_string()
+        )
+    ).send();
 
 }
 

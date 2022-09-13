@@ -704,7 +704,7 @@ private:
 
     };
 
-    typedef multi_index<name("earntables"), earnTable_s> earnTable_t;
+    typedef multi_index<name("earntable"), earnTable_s> earnTable_t;
 
     earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
 
