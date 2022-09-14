@@ -689,17 +689,6 @@ private:
         name account;
         vector<string> earn_staked;
         
-        // uint64_t APY;
-        // asset staked_LUDIO;
-        // uint64_t timestamp_LUDIO;
-        // //float APY_LUDIO;
-        // asset staked_CDCARBZ;
-        // uint64_t timestamp_CDCARBZ;
-        // //float APY_CDCARBZ;
-        // asset staked_CDJIGO;
-        // uint64_t timestamp_CDJIGO;
-        //float APY_CDJIGO;
-
         uint64_t primary_key() const { return account.value; }
 
     };
