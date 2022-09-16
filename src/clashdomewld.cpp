@@ -2611,7 +2611,7 @@ void clashdomewld::parseSocialsMemo(name account, string memo)
 }
 
 void clashdomewld::updateDailyStats(asset assetVal,int type){
-    int64_t amount= assetVal.amount;
+    float amount= assetVal.amount;
     symbol symbol= assetVal.symbol;
 
     if (symbol == LUDIO_SYMBOL) {
@@ -2621,7 +2621,6 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     } else if (symbol == CDJIGO_SYMBOL) {
         symbol = JIGOWATTS_SYMBOL;
     }
-
     asset nullasset;
     nullasset.amount=0.0000;
     nullasset.symbol=CARBZ_SYMBOL;
@@ -2653,7 +2652,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     if(symbol==CARBZ_SYMBOL){
         if (type==1){
         //mined carbz++
-        int64_t currtoken=ptokenstatsitr->mined_carbz.amount;
+        float currtoken=ptokenstatsitr->mined_carbz.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.mined_carbz.amount=currtoken;
@@ -2661,14 +2660,14 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         
         }else if(type==0){
         //consumed carbz++
-        int64_t currtoken=ptokenstatsitr->consumed_carbz.amount;
+        float currtoken=ptokenstatsitr->consumed_carbz.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_carbz.amount=currtoken;
             });
         }else if(type==2){
         //burned carbz++
-        int64_t currtoken=ptokenstatsitr->burned_carbz.amount;
+        float currtoken=ptokenstatsitr->burned_carbz.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.burned_carbz.amount=currtoken;
@@ -2678,7 +2677,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     else if(symbol==CREDITS_SYMBOL){
         if (type==1){
         //mined credits++
-        int64_t currtoken=ptokenstatsitr->mined_credits.amount;
+        float currtoken=ptokenstatsitr->mined_credits.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.mined_credits.amount=currtoken;
@@ -2686,14 +2685,14 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         
         }else if(type==0){
         //consumed credits++
-        int64_t currtoken=ptokenstatsitr->consumed_credits.amount;
+        float currtoken=ptokenstatsitr->consumed_credits.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_credits.amount=currtoken;
             });
         }else if(type==2){
         //burned credits++
-        int64_t currtoken=ptokenstatsitr->burned_credits.amount;
+        float currtoken=ptokenstatsitr->burned_credits.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.burned_credits.amount=currtoken;
@@ -2703,7 +2702,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     else if(symbol==JIGOWATTS_SYMBOL){
         if (type==1){
         //minted jigo++
-        int64_t currtoken=ptokenstatsitr->mined_jigo.amount;
+        float currtoken=ptokenstatsitr->mined_jigo.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.mined_jigo.amount=currtoken;
@@ -2711,14 +2710,14 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         
         }else if(type==0){
         //consumed jigo++
-        int64_t currtoken=ptokenstatsitr->consumed_jigo.amount;
+        float currtoken=ptokenstatsitr->consumed_jigo.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.consumed_jigo.amount=currtoken;
             });
         }else if(type==2){
         //burned jigo++
-        int64_t currtoken=ptokenstatsitr->burned_jigo.amount;
+        float currtoken=ptokenstatsitr->burned_jigo.amount;
         currtoken += amount;
         tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
                 mod_day.burned_jigo.amount=currtoken;
@@ -2736,7 +2735,7 @@ void clashdomewld::earnstake(
 
     check( 0< type && type <4, "Type out of range ");    
 
-    float amount= staking.amount/10000.000000000000000 ;
+    float amount= staking.amount/10000.0 ;
      
     symbol symbol= staking.symbol;
 
@@ -2807,7 +2806,7 @@ void clashdomewld::earnstake(
     float temp_qty = stake_data[asset_qty_str];
     int temp_time = stake_data[asset_time_srt];
     if(temp_qty > 0 && temp_time > 0){
-        stake_data[asset_qty_str] = getEarnReturns(temp_qty,temp_time,stake_data["APY"] ) + amount;
+        stake_data[asset_qty_str] = getEarnReturns(temp_qty,temp_time,stake_data["APY"], symbol ) + amount;
     }else{
         stake_data[asset_qty_str] = amount;
     }
@@ -2854,7 +2853,7 @@ void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
         });
 
     check(stakedAmount >0.0 && stakingTimestamp > 0 , "You have not staked this asset yet!" );
-    float returns =  getEarnReturns(stakedAmount, stakingTimestamp, APY); 
+    float returns =  getEarnReturns(stakedAmount, stakingTimestamp, APY, asset_symbol); 
     asset quantity;
     
     quantity.symbol = asset_symbol;
@@ -2874,7 +2873,7 @@ void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
 
 }
 
-float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY){
+float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token){
     
     //APY to weeks map 
     std::map<int, int> APY_to_MinWeeks = {
@@ -2889,16 +2888,25 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
     int  staked_weeks = floor(staked_seconds / (3600*24*7));
     int min_weeks = APY_to_MinWeeks[APY];
 
-    if (staked_weeks <= min_weeks){//pagar + interesses
+    if (staked_weeks >= min_weeks){//pagar + interesses
     float interest_per_cicle = min_weeks * APY/(100.0*52.0);
-    float curr_amount  = stakedAmount;
     int cicles = floor(staked_weeks/min_weeks);
-    for (int i = 0; i < cicles; i++) {
-        curr_amount +=   interest_per_cicle * curr_amount;
-    }
+    
+    float percent_gain = stakedAmount/ APY;
+    float daily_gain = percent_gain /365.0;
+    float stake_gain = 7.0 * daily_gain * cicles * min_weeks;
+    float curr_amount  = stakedAmount + stake_gain;
+    //tokenomics 
+    float earn_tokenomics= (curr_amount - stakedAmount);
+    asset tokenomics_asset;
+    tokenomics_asset.symbol = token;
+    tokenomics_asset.amount = earn_tokenomics;
+
+    updateDailyStats(tokenomics_asset,1);
+    
     return curr_amount;
 
-    }else{ //devolver sin intereses 
+    }else{ //devolver sin intereses
         return stakedAmount;
     } 
 }

@@ -715,7 +715,7 @@ private:
     void earnstake( name acount, asset staking, uint64_t type); // stake tokens functons
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
-    float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY);
+    float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token);
 
     // CONSTANTS
 
