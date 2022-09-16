@@ -733,7 +733,9 @@ private:
     void sendfreq(name account, name to);
     void acceptfreq(name account, name to);
     void addFriend(name account, name fraccount);
+    void blockAccount(name account, name fraccount);
     bool checkFriend(name account, name fraccount);
+    bool checkBlock(name account, name fraccount);
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
 
@@ -773,6 +775,7 @@ private:
     const string TELEGRAM = "tg";
     const string DISCORD = "dc";
     const string FRIENDS = "fr";
+    const string BLOCKS = "bl";
 
     enum ChoiceType {ROCK = 0, PAPER, SCISSORS};
     enum StatusType {PENDING = 0, DONE};

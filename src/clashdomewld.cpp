@@ -1193,6 +1193,10 @@ void clashdomewld::erasetable(
         for (auto itr = smclaim.begin(); itr != smclaim.end();) {
             itr = smclaim.erase(itr);
         }
+    } else if (table_name == "social") {
+        for (auto itr = social.begin(); itr != social.end();) {
+            itr = social.erase(itr);
+        }
     }
 
 }
@@ -1530,7 +1534,7 @@ void clashdomewld::sendfreq(
 
     if (sc_itr != social.end()) {
         json social_data = json::parse(sc_itr->data);
-        if (social_data.find(to.to_string()) != social_data.end()) {
+        if (social_data.find(FRIENDS) != social_data.end()) {
             check(social_data[FRIENDS].find(to.to_string()) == social_data[FRIENDS].end(), to.to_string() + " already is your friend.");
         }
     }
@@ -1599,12 +1603,13 @@ void clashdomewld::declinefreq(
         if (freq_itr->from == from) {
             auto itr = frequests.find(freq_itr->id);
             frequests.erase(itr);
+
+            blockAccount(account, from);
             break;
         } else {
             freq_itr++;
         } 
     }
-
 }
 
 void clashdomewld::rmfriend(
@@ -1613,15 +1618,29 @@ void clashdomewld::rmfriend(
 ) {
     require_auth(account);
 
-    auto sc_itr = social.find(account.value);
+    if(checkFriend(account, fraccount)) {
 
-    json social_data = json::parse(sc_itr->data);
+        auto sc_itr = social.find(account.value);
+        json social_data = json::parse(sc_itr->data);
+        social_data[FRIENDS].erase(fraccount.to_string());
 
-    social_data[FRIENDS].erase(fraccount.to_string());
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
 
-    social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
-        acc.data = social_data.dump();
-    });
+        blockAccount(account, fraccount);
+    }
+
+    if(checkFriend(fraccount, account)) {
+
+        auto sc_itr = social.find(fraccount.value);
+        json social_data = json::parse(sc_itr->data);
+        social_data[FRIENDS].erase(account.to_string());
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
 }
 
 void clashdomewld::loggigaswap(
@@ -1828,9 +1847,10 @@ void clashdomewld::receive_token_transfer(
         check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
         check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
 
-        sendfreq(from, name(fraccount));
+        check(!checkBlock(name(fraccount), from), "You are blocked by " + fraccount);
+        check(!checkBlock(from, name(fraccount)), "You blocked " + fraccount);
 
-        
+        sendfreq(from, name(fraccount));
     } else if (memo.find("accept_friend_request") != string::npos){
 
         const size_t fb = memo.find(":");
@@ -1841,7 +1861,6 @@ void clashdomewld::receive_token_transfer(
         check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
 
         acceptfreq(from, name(fraccount));
-        
     } else {
         check(memo == "transfer", "Invalid memo.");
     }
@@ -2587,7 +2606,6 @@ void clashdomewld::addFriend(name account, name fraccount)
     } else {
 
         json social_data = json::parse(sc_itr->data);
-
         social_data[FRIENDS][fraccount.to_string()] = 1;
 
         social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
@@ -2596,17 +2614,62 @@ void clashdomewld::addFriend(name account, name fraccount)
     }
 }
 
+void clashdomewld::blockAccount(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr == social.end()) {
+
+        json social_data;
+        social_data[BLOCKS][fraccount.to_string()] = 1;
+
+        social.emplace(CONTRACTN, [&](auto& acc) {
+            acc.account = account;
+            acc.data = social_data.dump();
+        });
+
+    } else {
+
+        json social_data = json::parse(sc_itr->data);
+        social_data[BLOCKS][fraccount.to_string()] = 1;
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
+}
+
+
 bool clashdomewld::checkFriend(name account, name fraccount)
 {
     auto sc_itr = social.find(account.value);
 
     if (sc_itr != social.end()) {
-
         json social_data = json::parse(sc_itr->data);
-        if (social_data[FRIENDS][fraccount.to_string()]) {
-            return true;
-        } else {
+        if (social_data.find(FRIENDS) == social_data.end()) {
             return false;
+        } else if (social_data[FRIENDS].find(fraccount.to_string()) == social_data[FRIENDS].end()) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
+
+bool clashdomewld::checkBlock(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+        json social_data = json::parse(sc_itr->data);
+        if (social_data.find(BLOCKS) == social_data.end()) {
+            return false;
+        } else if (social_data[BLOCKS].find(fraccount.to_string()) == social_data[BLOCKS].end()) {
+            return false;
+        } else {
+            return true;
         }
     } else {
         return false;
@@ -2753,13 +2816,29 @@ void clashdomewld::parseSocialsMemo(name account, string memo)
     auto ac_itr = social.find(account.value);
 
     if (ac_itr == social.end()) {
+
+        json prev_social_data = {};
+        prev_social_data[CUSTOM_NAME] = social_data[CUSTOM_NAME];
+        prev_social_data[COUNTRY] = social_data[COUNTRY];
+        prev_social_data[TWITTER] = social_data[TWITTER];
+        prev_social_data[TELEGRAM] = social_data[TELEGRAM];
+        prev_social_data[DISCORD] = social_data[DISCORD];
+
         social.emplace(CONTRACTN, [&](auto& acc) {
             acc.account = account;
-            acc.data = social_data.dump();
+            acc.data = prev_social_data.dump();
         });
     } else {
+
+        json prev_social_data = json::parse(ac_itr->data);
+        prev_social_data[CUSTOM_NAME] = social_data[CUSTOM_NAME];
+        prev_social_data[COUNTRY] = social_data[COUNTRY];
+        prev_social_data[TWITTER] = social_data[TWITTER];
+        prev_social_data[TELEGRAM] = social_data[TELEGRAM];
+        prev_social_data[DISCORD] = social_data[DISCORD];
+
         social.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-            acc.data = social_data.dump();
+            acc.data = prev_social_data.dump();
         });
     }
 }
