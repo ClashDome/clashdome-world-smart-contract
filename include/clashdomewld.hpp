@@ -79,6 +79,7 @@ public:
         uint32_t template_id,
         string item_name,
         string img,
+        string video,
         name schema_name,
         string game,
         uint64_t timestamp_start,
@@ -405,6 +406,7 @@ private:
         uint32_t template_id;
         string item_name;
         string img;
+        string video;
         name schema_name;
         string game;
         uint64_t timestamp_start;
@@ -423,6 +425,17 @@ private:
     typedef multi_index<name("shop"), shop_s> shop_t;
 
     shop_t shop = shop_t(get_self(), get_self().value); 
+
+    // shop_claims
+    TABLE shopclaims_s {
+        uint32_t template_id;
+        uint64_t counter;
+        uint64_t last_claim_time;
+
+        uint64_t primary_key() const { return template_id; }
+    };
+
+    typedef multi_index<name("shopclaims"), shopclaims_s> shopclaims_t;
 
     // shop_max_claimable
     TABLE smclaim_s {
