@@ -697,6 +697,20 @@ private:
 
     earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
 
+    //earn
+
+    TABLE earnstats_s{
+        uint64_t key;
+        asset staked_ludio;
+        asset staked_carbz;
+        asset staked_jigo;
+    
+        uint64_t primary_key() const {return (uint64_t) key;}
+    };
+
+    typedef multi_index<name("earnstats"), earnstats_s> earnstats_t;
+
+    earnstats_t earnstats = earnstats_t(get_self(), get_self().value); 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -716,6 +730,7 @@ private:
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
     float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token);
+    
 
     // CONSTANTS
 
