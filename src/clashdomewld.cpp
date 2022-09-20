@@ -2944,7 +2944,7 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
 
     if (staked_weeks >= min_weeks){//pagar + interesses
     float interest_per_cicle = min_weeks * APY/(100.0*52.0);
-    int cicles = floor(staked_weeks/min_weeks);
+    float cicles = floor(staked_weeks/min_weeks);
     
     float percent_gain = stakedAmount * (APY/100.0);
     float daily_gain = (7.0 * min_weeks) /365.0;
