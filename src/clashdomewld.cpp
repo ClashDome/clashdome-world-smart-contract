@@ -1198,6 +1198,10 @@ void clashdomewld::erasetable(
         for (auto itr = earntable.begin(); itr != earntable.end();) {
             itr = earntable.erase(itr);
         }
+    }else if (table_name == "apartments") {
+        for (auto itr = apartments.begin(); itr != apartments.end();) {
+            itr = apartments.erase(itr);
+        }
     }
 
 }
@@ -2909,6 +2913,62 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
     }else{ //devolver sin intereses
         return stakedAmount;
     } 
+}
+
+//APARTMENTS table 
+void clashdomewld::stakeapartment(name account, uint64_t asset_id, uint64_t template_id, string data){
+
+    auto ptaptsitr = apartments.find(account.value);
+
+    json asset_info;
+    asset_info["tid"] = template_id;
+    if(data != "NULL") asset_info["data"] = data;
+    
+    if (ptaptsitr == apartments.end()) {
+
+        json apartment_data;
+        apartment_data[to_string(asset_id)]= asset_info;
+        string stake_data_str =  apartment_data.dump();
+
+        ptaptsitr = apartments.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = account;
+            new_a.collection = stake_data_str; 
+        });
+
+    }else{
+        
+        json apartment_data = json::parse(ptaptsitr->collection);
+        apartment_data[to_string(asset_id)]= asset_info;
+        string stake_data_str =  apartment_data.dump();
+
+        apartments.modify(ptaptsitr, get_self(), [&](auto &mod_acc) {
+                mod_acc.collection = stake_data_str;
+            });
+        }
+}
+
+void clashdomewld::unstakeapartment(name account, uint64_t asset_id){
+
+    auto ptaptsitr = apartments.find(account.value);
+
+    check( ptaptsitr != apartments.end(), "No content on the apartments table to delete !");
+
+    json apartment_data = json::parse(ptaptsitr->collection);
+    apartment_data.erase(apartment_data.find(to_string(asset_id)));
+    string tmp =  apartment_data.dump();
+
+    apartments.modify(ptaptsitr, get_self(), [&](auto &mod_acc) {
+                mod_acc.collection = tmp;
+            });
+
+}
+
+void clashdomewld::testactn(name account, uint64_t asset_id, uint64_t template_id, string data){
+
+    //stakeapartment(account , asset_id, template_id, data);
+
+    unstakeapartment(account, asset_id);
+    
 }
 
 symbol clashdomewld::tokenConversion(symbol s1){

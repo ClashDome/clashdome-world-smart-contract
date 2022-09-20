@@ -235,6 +235,9 @@ public:
         uint64_t type
     );
 
+    ACTION testactn(name account, uint64_t asset_id, uint64_t template_id, string data);
+
+
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
         name to,
@@ -697,6 +700,20 @@ private:
 
     earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
 
+    //apartment table 
+    TABLE apartments_s{
+
+        name account;
+        string collection;
+        
+        uint64_t primary_key() const { return account.value; }
+
+    };
+
+    typedef multi_index<name("apartments"), apartments_s> apartments_t;
+
+    apartments_t apartments = apartments_t(get_self(), get_self().value); 
+
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -716,7 +733,8 @@ private:
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
     float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token);
-
+    void stakeapartment(name account, uint64_t asset_id, uint64_t template_id, string data);
+    void unstakeapartment(name account, uint64_t asset_id);
     // CONSTANTS
 
     // const string COLLECTION_NAME = "clashdomewld";
