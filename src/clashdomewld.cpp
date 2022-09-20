@@ -2946,9 +2946,9 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
     float interest_per_cicle = min_weeks * APY/(100.0*52.0);
     int cicles = floor(staked_weeks/min_weeks);
     
-    float percent_gain = stakedAmount/ APY;
-    float daily_gain = percent_gain /365.0;
-    float stake_gain = 7.0 * daily_gain * cicles * min_weeks;
+    float percent_gain = stakedAmount * (APY/100);
+    float daily_gain = (7.0 * min_weeks) /365.0;
+    float stake_gain = daily_gain * percent_gain ;
     float curr_amount  = stakedAmount + stake_gain;
     //tokenomics 
     float earn_tokenomics= (curr_amount - stakedAmount);
