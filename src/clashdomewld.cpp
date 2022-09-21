@@ -3104,6 +3104,7 @@ void clashdomewld::earnstake(
 
     float temp_qty = stake_data[asset_qty_str];
     int temp_time = stake_data[asset_time_srt];
+    check(temp_qty == 0 && temp_time == 0, "Clashdome-Error , you've already a pool with this tokens and this APY" );
     if(temp_qty > 0 && temp_time > 0){
         stake_data[asset_qty_str] = getEarnReturns(temp_qty,temp_time,stake_data["APY"], symbol ) + amount;
     }else{
@@ -3215,11 +3216,15 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
     if (staked_weeks >= min_weeks){//pagar + interesses
     float interest_per_cicle = min_weeks * APY/(100.0*52.0);
     float cicles = floor(staked_weeks/min_weeks);
-    
-    float percent_gain = stakedAmount * (APY/100.0);
-    float daily_gain = (7.0 * min_weeks) /365.0;
-    float stake_gain = daily_gain * percent_gain * cicles ;
-    float curr_amount  = stakedAmount + stake_gain;
+    float curr_amount =stakedAmount;
+
+    for (int i = 0; i < cicles; i++)
+    {
+        float percent_gain = curr_amount * (APY/100.0);
+        float daily_gain = (7.0 * min_weeks) /365.0;
+        float stake_gain = daily_gain * percent_gain ;
+        curr_amount  = curr_amount + stake_gain;
+    }
     //tokenomics 
     float earn_tokenomics= (curr_amount - stakedAmount);
     asset tokenomics_asset;
