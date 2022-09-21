@@ -226,6 +226,10 @@ public:
         name account,
         name fraccount
     );
+    ACTION ubaccount(
+        name account,
+        name fraccount
+    );
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
@@ -796,6 +800,6 @@ private:
     static constexpr symbol CDJIGO_SYMBOL = symbol(symbol_code("CDJIGO"), 4);
 
     // FRIENDS
-    const asset FRIENDS_REQUEST_FEE = asset(150000, CDJIGO_SYMBOL);
+    const asset FRIENDS_REQUEST_FEE = asset(1000000, CDJIGO_SYMBOL);
 
 };

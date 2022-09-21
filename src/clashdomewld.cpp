@@ -1643,6 +1643,23 @@ void clashdomewld::rmfriend(
     }
 }
 
+void clashdomewld::ubaccount(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    check(checkBlock(account, fraccount), fraccount.to_string() + " isn't blocked.");
+
+    auto sc_itr = social.find(account.value);
+    json social_data = json::parse(sc_itr->data);
+    social_data[BLOCKS].erase(fraccount.to_string());
+
+    social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+        acc.data = social_data.dump();
+    });
+}
+
 void clashdomewld::loggigaswap(
     name acount,
     vector<uint8_t> player_choices,
@@ -1843,6 +1860,9 @@ void clashdomewld::receive_token_transfer(
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
         string fraccount = memo.substr(fb + 1);
+
+        auto ac_itr = accounts.find(name(fraccount).value);
+        check(ac_itr != accounts.end(), "Account with name " + fraccount + " doesn't exist!");
 
         check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
         check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
