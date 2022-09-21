@@ -218,7 +218,18 @@ public:
         name acount,
         string avatar
     );
-    
+    ACTION declinefreq(
+        name account,
+        name from
+    );
+    ACTION rmfriend(
+        name account,
+        name fraccount
+    );
+    ACTION ubaccount(
+        name account,
+        name fraccount
+    );
     ACTION loggigaswap(
         name acount,
         vector<uint8_t> player_choices,
@@ -683,6 +694,24 @@ private:
 
     decorations_t decorations = decorations_t(get_self(), get_self().value); 
 
+    // friends requests
+    TABLE frequests_s {
+        uint64_t id;
+        name from;
+        name to;
+
+        uint64_t primary_key() const { return id; }
+        uint64_t by_from() const { return from.value; }
+        uint64_t by_to() const { return to.value; }
+    };
+
+    typedef multi_index<name("frequests"), frequests_s,
+        indexed_by < name("byfrom"), const_mem_fun < frequests_s, uint64_t, &frequests_s::by_from>>,
+        indexed_by < name("byto"), const_mem_fun < frequests_s, uint64_t, &frequests_s::by_to>>> 
+    frequests_t;
+
+    frequests_t frequests = frequests_t(get_self(), get_self().value); 
+
     //earn 
     TABLE earnTable_s{
 
@@ -726,6 +755,12 @@ private:
     void checkEarlyAccess(name account, uint64_t early_access);
     void parseSocialsMemo(name account, string memo);
     void updateDailyStats(asset assetVal,int type);
+    void sendfreq(name account, name to);
+    void acceptfreq(name account, name to);
+    void addFriend(name account, name fraccount);
+    void blockAccount(name account, name fraccount);
+    bool checkFriend(name account, name fraccount);
+    bool checkBlock(name account, name fraccount);
     void earnstake( name acount, asset staking, uint64_t type); // stake tokens functons
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
@@ -767,6 +802,8 @@ private:
     const string TWITTER = "tw";
     const string TELEGRAM = "tg";
     const string DISCORD = "dc";
+    const string FRIENDS = "fr";
+    const string BLOCKS = "bl";
 
     enum ChoiceType {ROCK = 0, PAPER, SCISSORS};
     enum StatusType {PENDING = 0, DONE};
@@ -785,4 +822,8 @@ private:
     static constexpr symbol LUDIO_SYMBOL = symbol(symbol_code("LUDIO"), 4);
     static constexpr symbol CDCARBZ_SYMBOL = symbol(symbol_code("CDCARBZ"), 4);
     static constexpr symbol CDJIGO_SYMBOL = symbol(symbol_code("CDJIGO"), 4);
+
+    // FRIENDS
+    const asset FRIENDS_REQUEST_FEE = asset(1000000, CDJIGO_SYMBOL);
+
 };

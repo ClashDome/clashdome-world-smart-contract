@@ -1194,6 +1194,10 @@ void clashdomewld::erasetable(
         for (auto itr = smclaim.begin(); itr != smclaim.end();) {
             itr = smclaim.erase(itr);
         }
+    } else if (table_name == "social") {
+        for (auto itr = social.begin(); itr != social.end();) {
+            itr = social.erase(itr);
+        }
     } else if (table_name == "earntable") {
         for (auto itr = earntable.begin(); itr != earntable.end();) {
             itr = earntable.erase(itr);
@@ -1531,6 +1535,143 @@ void clashdomewld::addavatar(
     });
 }
 
+void clashdomewld::sendfreq(
+    name account,
+    name to
+) {
+    require_auth(account);
+
+    // CHECK IF ALREADY ITS YOUR FRIEND
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+        json social_data = json::parse(sc_itr->data);
+        if (social_data.find(FRIENDS) != social_data.end()) {
+            check(social_data[FRIENDS].find(to.to_string()) == social_data[FRIENDS].end(), to.to_string() + " already is your friend.");
+        }
+    }
+
+    // CHECK YOUR REQUEST
+    auto freq_idx = frequests.get_index<name("byfrom")>();
+    auto freq_itr = freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->from == account) {
+        check(freq_itr->to != to, "Friend request to " + to.to_string() + " already sent.");
+        freq_itr++;
+    }
+
+    // CHECK YOUR FUTURE FRIEND REQUESTS
+    freq_idx = frequests.get_index<name("byfrom")>();
+    freq_itr = freq_idx.lower_bound(to.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->from == to) {
+        check(freq_itr->to != account, to.to_string() + " already sent you a friend request.");
+        freq_itr++;
+    } 
+
+    frequests.emplace(CONTRACTN, [&](auto& row) {
+        row.id = frequests.available_primary_key();
+        row.from = account;
+        row.to = to;
+    });
+}
+
+void clashdomewld::acceptfreq(
+    name account,
+    name from
+) {
+    require_auth(account);
+
+    auto freq_idx = frequests.get_index<name("byto")>();
+    auto freq_itr =  freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->to == account) {
+
+        if (freq_itr->from == from) {
+            auto itr = frequests.find(freq_itr->id);
+            frequests.erase(itr);
+            break;
+        } else {
+            freq_itr++;
+        } 
+    }
+
+    addFriend(account, from);
+    addFriend(from, account);
+
+}
+
+void clashdomewld::declinefreq(
+    name account,
+    name from
+) {
+    require_auth(account);
+
+    auto freq_idx = frequests.get_index<name("byto")>();
+    auto freq_itr =  freq_idx.lower_bound(account.value);
+
+    while (freq_itr != freq_idx.end() && freq_itr->to == account) {
+
+        if (freq_itr->from == from) {
+            auto itr = frequests.find(freq_itr->id);
+            frequests.erase(itr);
+
+            blockAccount(account, from);
+            break;
+        } else {
+            freq_itr++;
+        } 
+    }
+}
+
+void clashdomewld::rmfriend(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    if(checkFriend(account, fraccount)) {
+
+        auto sc_itr = social.find(account.value);
+        json social_data = json::parse(sc_itr->data);
+        social_data[FRIENDS].erase(fraccount.to_string());
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+
+        blockAccount(account, fraccount);
+    }
+
+    if(checkFriend(fraccount, account)) {
+
+        auto sc_itr = social.find(fraccount.value);
+        json social_data = json::parse(sc_itr->data);
+        social_data[FRIENDS].erase(account.to_string());
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
+}
+
+void clashdomewld::ubaccount(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    check(checkBlock(account, fraccount), fraccount.to_string() + " isn't blocked.");
+
+    auto sc_itr = social.find(account.value);
+    json social_data = json::parse(sc_itr->data);
+    social_data[BLOCKS].erase(fraccount.to_string());
+
+    social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+        acc.data = social_data.dump();
+    });
+}
+
 void clashdomewld::loggigaswap(
     name acount,
     vector<uint8_t> player_choices,
@@ -1733,6 +1874,32 @@ void clashdomewld::receive_token_transfer(
         string d2 = memo.substr(fb + 1); // type
 
         earnstake(from,quantity,stoi(d2));
+    } else if (memo.find("send_friend_request") != string::npos){
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string fraccount = memo.substr(fb + 1);
+
+        auto ac_itr = accounts.find(name(fraccount).value);
+        check(ac_itr != accounts.end(), "Account with name " + fraccount + " doesn't exist!");
+
+        check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
+        check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
+
+        check(!checkBlock(name(fraccount), from), "You are blocked by " + fraccount);
+        check(!checkBlock(from, name(fraccount)), "You blocked " + fraccount);
+
+        sendfreq(from, name(fraccount));
+    } else if (memo.find("accept_friend_request") != string::npos){
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string fraccount = memo.substr(fb + 1);
+
+        check(quantity.symbol == FRIENDS_REQUEST_FEE.symbol, "Invalid token symbol.");
+        check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
+
+        acceptfreq(from, name(fraccount));
     } else {
         check(memo == "transfer", "Invalid memo.");
     }
@@ -2050,9 +2217,6 @@ void clashdomewld::receive_tokens_transfer(
 
             check(pos != -1, "Insufficient materials.");
             check(quantities[pos].amount == shop_itr->price[i].amount, "Invalid materials.");
-
-            // TODO: decidir si se quema o no al comprar
-            // burnTokens(shop_itr->price[i], "Item with template_id " + to_string(template_id) + ".");
             
             updateDailyStats(shop_itr->price[i],0);
         }
@@ -2464,6 +2628,93 @@ void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
     });
 }
 
+void clashdomewld::addFriend(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr == social.end()) {
+
+        json social_data;
+        social_data[FRIENDS][fraccount.to_string()] = 1;
+
+        social.emplace(CONTRACTN, [&](auto& acc) {
+            acc.account = account;
+            acc.data = social_data.dump();
+        });
+
+    } else {
+
+        json social_data = json::parse(sc_itr->data);
+        social_data[FRIENDS][fraccount.to_string()] = 1;
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
+}
+
+void clashdomewld::blockAccount(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr == social.end()) {
+
+        json social_data;
+        social_data[BLOCKS][fraccount.to_string()] = 1;
+
+        social.emplace(CONTRACTN, [&](auto& acc) {
+            acc.account = account;
+            acc.data = social_data.dump();
+        });
+
+    } else {
+
+        json social_data = json::parse(sc_itr->data);
+        social_data[BLOCKS][fraccount.to_string()] = 1;
+
+        social.modify(sc_itr, CONTRACTN, [&](auto& acc) {
+            acc.data = social_data.dump();
+        });
+    }
+}
+
+
+bool clashdomewld::checkFriend(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+        json social_data = json::parse(sc_itr->data);
+        if (social_data.find(FRIENDS) == social_data.end()) {
+            return false;
+        } else if (social_data[FRIENDS].find(fraccount.to_string()) == social_data[FRIENDS].end()) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
+
+bool clashdomewld::checkBlock(name account, name fraccount)
+{
+    auto sc_itr = social.find(account.value);
+
+    if (sc_itr != social.end()) {
+        json social_data = json::parse(sc_itr->data);
+        if (social_data.find(BLOCKS) == social_data.end()) {
+            return false;
+        } else if (social_data[BLOCKS].find(fraccount.to_string()) == social_data[BLOCKS].end()) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
+
 void clashdomewld::getTokens(uint64_t asset_id, name from, name to)
 {
 
@@ -2569,8 +2820,6 @@ void clashdomewld::burnTrial(name account)
             acc.unclaimed_credits.amount += trial_itr->credits.amount;
         });
 
-        // TODO: consumir stamina y bateria?
-
         trials.erase(trial_itr);
     }
 }
@@ -2606,13 +2855,29 @@ void clashdomewld::parseSocialsMemo(name account, string memo)
     auto ac_itr = social.find(account.value);
 
     if (ac_itr == social.end()) {
+
+        json prev_social_data = {};
+        prev_social_data[CUSTOM_NAME] = social_data[CUSTOM_NAME];
+        prev_social_data[COUNTRY] = social_data[COUNTRY];
+        prev_social_data[TWITTER] = social_data[TWITTER];
+        prev_social_data[TELEGRAM] = social_data[TELEGRAM];
+        prev_social_data[DISCORD] = social_data[DISCORD];
+
         social.emplace(CONTRACTN, [&](auto& acc) {
             acc.account = account;
-            acc.data = social_data.dump();
+            acc.data = prev_social_data.dump();
         });
     } else {
+
+        json prev_social_data = json::parse(ac_itr->data);
+        prev_social_data[CUSTOM_NAME] = social_data[CUSTOM_NAME];
+        prev_social_data[COUNTRY] = social_data[COUNTRY];
+        prev_social_data[TWITTER] = social_data[TWITTER];
+        prev_social_data[TELEGRAM] = social_data[TELEGRAM];
+        prev_social_data[DISCORD] = social_data[DISCORD];
+
         social.modify(ac_itr, CONTRACTN, [&](auto& acc) {
-            acc.data = social_data.dump();
+            acc.data = prev_social_data.dump();
         });
     }
 }
