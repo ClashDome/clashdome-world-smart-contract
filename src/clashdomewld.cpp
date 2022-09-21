@@ -1890,6 +1890,9 @@ void clashdomewld::receive_token_transfer(
         check(!checkBlock(from, name(fraccount)), "You blocked " + fraccount);
 
         sendfreq(from, name(fraccount));
+
+        updateDailyStats(quantity,0);
+
     } else if (memo.find("accept_friend_request") != string::npos){
 
         const size_t fb = memo.find(":");
@@ -1900,6 +1903,8 @@ void clashdomewld::receive_token_transfer(
         check(quantity.amount == FRIENDS_REQUEST_FEE.amount, "Invalid token amount.");
 
         acceptfreq(from, name(fraccount));
+
+        updateDailyStats(quantity,0);
     } else {
         check(memo == "transfer", "Invalid memo.");
     }
