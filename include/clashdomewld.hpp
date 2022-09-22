@@ -246,7 +246,7 @@ public:
         uint64_t type
     );
 
-    ACTION testactn(name account, uint64_t asset_id, uint64_t template_id, string data);
+    ACTION apartspop(string table_name);
 
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
@@ -781,7 +781,9 @@ private:
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
     float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token);
-    
+    void stakeapartment(name account, uint64_t asset_id, uint64_t template_id, string data);
+    void unstakeapartment(name account, uint64_t asset_id);
+
 
     // CONSTANTS
 
