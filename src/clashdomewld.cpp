@@ -1210,6 +1210,10 @@ void clashdomewld::erasetable(
         for (auto itr = earnstats.begin(); itr != earnstats.end();) {
             itr = earnstats.erase(itr);
         }
+    }else if (table_name == "earn") {
+        for (auto itr = earn.begin(); itr != earn.end();) {
+            itr = earn.erase(itr);
+        }
     }
 }
 
@@ -1873,7 +1877,7 @@ void clashdomewld::receive_token_transfer(
         //string d1 = memo.substr(0, fb); //"earn"
         string d2 = memo.substr(fb + 1); // type
 
-        earnstake(from,quantity,stoi(d2));
+        earnstake(from, quantity, stoi(d2), 0);
     } else if (memo.find("send_friend_request") != string::npos){
 
         const size_t fb = memo.find(":");
@@ -3002,14 +3006,14 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         }
     }
 } 
-uint64_t earnStats_key = 0;
 //earn program
 void clashdomewld::earnstake(
     name account,
     asset staking,
-    uint64_t type
+    uint64_t type,
+    uint64_t timestamp_import
 ) { 
-
+    
     check( 0< type && type <4, "Type out of range ");    
 
     float amount= staking.amount/10000.0 ;
@@ -3018,7 +3022,7 @@ void clashdomewld::earnstake(
 
     check(symbol == CDCARBZ_SYMBOL || symbol== CDJIGO_SYMBOL || symbol == LUDIO_SYMBOL, "The staked asset is not available");
 
-    auto ptearntableitr = earntable.find(account.value);
+    auto earntitr = earn.find(account.value);
 
     int APYs[3] = {1,2,3};
     std::map<int, float> APY_to_Percent = {
@@ -3026,49 +3030,18 @@ void clashdomewld::earnstake(
         { 2, 7.0 },
         { 3, 10.0 }
         };
-    
-    if (ptearntableitr == earntable.end()) {
 
-        asset nullasset;
-        nullasset.amount=0.0000;
-        nullasset.symbol=LUDIO_SYMBOL;
-
-        vector<string> games_data;
-
-        //json
-        for (int i = 0; i < 3; i++)
-        {   
-            json stake_data;
-            stake_data["APY"]= APY_to_Percent[i+1];
-            stake_data["sL"] = 0.0000;
-            stake_data["tL"] = 0;
-
-            nullasset.symbol = CDCARBZ_SYMBOL;
-            stake_data["sC"] = 0.0000;
-            stake_data["tC"] = 0;
-
-            nullasset.symbol = CDJIGO_SYMBOL;
-            stake_data["sJ"] = 0.0000;
-            stake_data["tJ"] = 0;
-
-            string stake_data_str = stake_data.dump();
-            
-            games_data.push_back(stake_data_str);
-
-        }
-        
-        ptearntableitr = earntable.emplace(CONTRACTN, [&](auto &new_a) {
+    json earn_data;
+    if(earntitr == earn.end()){
+        earntitr = earn.emplace(CONTRACTN, [&](auto &new_a) {
             new_a.account = account;
-            new_a.earn_staked = games_data; 
+            new_a.counter = 0;
         });
-
+        
+    }else{
+        earn_data = json::parse(earntitr->earn_data);
     }
 
-    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
-
-    int pos = type -1; // position on the array
-    json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
-    string asset_name;
     asset nullasset;
     nullasset.amount=0.0000;
     nullasset.symbol=LUDIO_SYMBOL;
@@ -3082,90 +3055,75 @@ void clashdomewld::earnstake(
             new_a.staked_jigo = nullasset;
         });
     }
+
+    string asset_name;
     if(symbol == LUDIO_SYMBOL){//este if es porque no me deja haer maps con symbols
         asset_name= "L";
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_ludio += staking;
-        });
     }else if (symbol == CDCARBZ_SYMBOL){
-        asset_name= "C";
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_carbz += staking;
-        });
+        asset_name= "C"; 
     }else{
-        asset_name = "J";
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_jigo += staking;
-        });
+        asset_name = "J";  
     }
+    if (timestamp_import == 0 ){earnstatsfn(staking,true);}
 
-    string asset_qty_str = "s"+ asset_name;
-    string asset_time_srt = "t"+ asset_name;
+    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+    
+    uint64_t curr_ctr = earntitr->counter;
+    json new_deposit;
+    
+    new_deposit[EARN_ID] = curr_ctr;
+    new_deposit[EARN_asset] = asset_name;
+    new_deposit[EARN_APY] = APY_to_Percent[type];
+    new_deposit[EARN_quantity] = amount;
+    new_deposit[EARN_timestamp] = timestamp_import > 0 ? timestamp_import : timestamp;
+    
+    earn_data[to_string(curr_ctr)] = new_deposit;
 
-    float temp_qty = stake_data[asset_qty_str];
-    int temp_time = stake_data[asset_time_srt];
-    check(temp_qty == 0 && temp_time == 0, "Clashdome-Error , you've already a pool with this tokens and this APY" );
-    if(temp_qty > 0 && temp_time > 0){
-        stake_data[asset_qty_str] = getEarnReturns(temp_qty,temp_time,stake_data["APY"], symbol ) + amount;
-    }else{
-        stake_data[asset_qty_str] = amount;
-    }
-    stake_data[asset_time_srt] = timestamp;
+    string earn_data_str = earn_data.dump();
 
-    string stake_data_str = stake_data.dump();
-
-    earntable.modify(ptearntableitr, get_self(), [&](auto &mod_acc) {
-            mod_acc.earn_staked.at(pos) = stake_data_str;
+    earn.modify(earntitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.counter ++;
+            mod_acc.earn_data = earn_data_str;
         });
+
 }
 
-void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
+void clashdomewld::earnunstake(name account , uint64_t id){
     //APY to % map 
     std::map<int, float> APY_to_Percent = {
         { 1, 5.0 },
         { 2, 7.0 },
         { 3, 10.0 }
         };
-
-    std::map<string, string> Name_to_shortcut = {
-        { "LUDIO", "L" },
-        { "CDCARBZ", "C" },
-        { "CDJIGO", "J"}
+ 
+   std::map<string, string> sc_to_name = {
+        { "L", "LUDIO" },
+        { "C", "CDCARBZ" },
+        { "J", "CDJIGO"}
         };
 
-
     require_auth(account);
-    symbol asset_symbol = symbol(symbol_code(asset_name), 4);
-    check(asset_symbol == CDCARBZ_SYMBOL || asset_symbol== CDJIGO_SYMBOL || asset_symbol == LUDIO_SYMBOL, "not valid asseet" );
+    
+    auto earntitr = earn.find(account.value);
+    check(earntitr !=earn.end(), "You dont have any depositos on the earn program !" );
+    json earn_data = json::parse(earntitr->earn_data);
+    check(earn_data.find(to_string(id)) != earn_data.end(),"You don't have a deposit associatied with this id");
+    json deposit = earn_data[to_string(id)];
+    float deposit_APY = deposit[EARN_APY];
+    string deposit_asset = deposit[EARN_asset];
+    float deposit_qty = deposit[EARN_quantity];
+    deposit_qty  = 10000.0 * deposit_qty;
+    float deposit_time = deposit[EARN_timestamp];
 
-    auto ptearntableitr = earntable.find(account.value);
-    check( ptearntableitr != earntable.end(), "You don't have any asset staked");
+    symbol asset_symbol = symbol(sc_to_name[deposit_asset], 4);
 
-    int pos = type -1; // position on the array
-    json stake_data = json::parse(ptearntableitr->earn_staked.at(pos));
+    check(deposit_qty >0.0 && deposit_time > 0 , "You have not staked this asset yet!" );
+    float returns =  getEarnReturns(deposit_qty, deposit_time, deposit_APY, asset_symbol); 
 
-    int APY = APY_to_Percent[type];
-    string short_name =Name_to_shortcut[asset_name] ;
-
-    float stakedAmount = stake_data["s"+short_name];
-    stakedAmount  = 10000.0 * stakedAmount;
-    uint64_t stakingTimestamp = stake_data["t"+short_name];
-
-    stake_data["s"+short_name] = 0.0;
-    stake_data["t"+short_name] = 0;
-
-    string stake_data_str = stake_data.dump();
-
-        earntable.modify(ptearntableitr, get_self(), [&](auto &mod_acc) {
-            mod_acc.earn_staked.at(pos) = stake_data_str;
-        });
-
-    check(stakedAmount >0.0 && stakingTimestamp > 0 , "You have not staked this asset yet!" );
-    float returns =  getEarnReturns(stakedAmount, stakingTimestamp, APY, asset_symbol); 
     asset quantity;
     
     quantity.symbol = asset_symbol;
-    quantity.amount = returns;    
+    quantity.amount = returns;
 
     action(
         permission_level{get_self(), name("active")},
@@ -3179,23 +3137,22 @@ void clashdomewld::earnunstake(name account , string asset_name, uint64_t type){
         )
     ).send();
 
+    earn_data.erase(earn_data.find(to_string(id)));
 
-    auto earn_statspt = earnstats.find(earnStats_key);
-    quantity.amount = stakedAmount;
-    if(asset_name == "LUDIO"){//este if es porque no me deja haer maps con symbols
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_ludio -= quantity;
-        });
-    }else if (asset_name == "CDCARBZ"){
+    if(earn_data.empty()){
+        earn.erase(earntitr);
 
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_carbz -= quantity;
-        });
     }else{
-        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
-            mod_acc.staked_jigo -= quantity;
+    string earn_data_str = earn_data.dump();
+
+    earn.modify(earntitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.earn_data = earn_data_str;
         });
     }
+    //stats
+    quantity.amount = deposit_qty;
+    earnstatsfn(quantity,false);
+
 }
 
 float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token){
@@ -3239,6 +3196,116 @@ float clashdomewld::getEarnReturns(float stakedAmount, uint64_t stakingTime, int
         return stakedAmount;
     } 
 }
+
+void clashdomewld::earnstatsfn(asset amount, bool type){
+
+    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+    uint32_t day=epochToDay(timestamp);
+    symbol sy = amount.symbol;
+    auto earn_statspt = earnstats.find(day);
+
+    if(earn_statspt == earnstats.end()){
+        auto prev_day_key = earnstats.end();
+        prev_day_key --;
+        earn_statspt = earnstats.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.key = day;
+            new_a.staked_ludio = prev_day_key->staked_ludio;
+            new_a.staked_carbz = prev_day_key->staked_carbz; 
+            new_a.staked_jigo = prev_day_key->staked_jigo;
+        });
+    }
+    // int mult = 1;
+    // if(type) mult =-1
+
+    auto global_ptr = earnstats.find(earnStats_key);
+
+    int mult = type ? 1.0 : -1.0;
+    amount.amount *= mult ;
+
+    if(sy == LUDIO_SYMBOL){//este if es porque no me deja haer maps con symbols
+        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_ludio += amount;
+        });
+         earnstats.modify(global_ptr, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_ludio += amount;
+        });
+    }else if (sy == CDCARBZ_SYMBOL){
+        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_carbz += amount;
+        });
+        earnstats.modify(global_ptr, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_carbz += amount;
+        });
+    }else{
+        earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_jigo += amount;
+        });
+        earnstats.modify(global_ptr, get_self(), [&](auto &mod_acc) {
+            mod_acc.staked_jigo += amount;
+        });
+    }
+
+}
+
+void clashdomewld::transferearn(){
+
+    require_auth(get_self());
+
+    std::map<int, float> Percent_to_type = {
+        { 5.0, 1 },
+        { 7.0, 2 },
+        { 10.0, 3 }
+        };
+    
+    for (auto itr = earntable.begin(); itr != earntable.end();itr ++) {
+
+        name player_name = itr->account;
+
+
+         for (int i = 0; i < 3; i++)
+        {   
+            json stake_data = json::parse(itr->earn_staked.at(i));
+            asset qty;   
+            float apy= stake_data["APY"];
+
+            float sL = stake_data["sL"];
+            uint64_t tL = stake_data["tL"];
+
+            if(sL > 0 && tL > 0  ) { 
+                qty.amount = sL * 10000.0;
+                qty.symbol = LUDIO_SYMBOL;
+                earnstake(player_name , qty , Percent_to_type[apy] , tL ); 
+                
+            }
+
+            float sC = stake_data["sC"];
+            float tC = stake_data["tC"];
+
+            if(sC > 0 && tC > 0  ) { 
+                qty.amount = sC * 10000.0;
+                qty.symbol = CDCARBZ_SYMBOL;
+                earnstake(player_name , qty , Percent_to_type[apy] , tC ); 
+                
+            }
+            
+            float sJ = stake_data["sJ"];
+            float tJ = stake_data["tJ"];
+
+            if(sJ > 0 && tJ > 0  ) { 
+                qty.amount = sJ * 10000.0;
+                qty.symbol = CDJIGO_SYMBOL;
+                earnstake(player_name , qty , Percent_to_type[apy] , tJ ); 
+                
+            }
+            
+        }
+        
+        //itr = earntable.erase(itr);
+            
+    }
+    
+}
+
 
 symbol clashdomewld::tokenConversion(symbol s1){
 
