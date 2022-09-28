@@ -799,11 +799,10 @@ private:
 
     //earn constants
     const int earnStats_key = 0;
-    const string EARN_ID = "id";
     const string EARN_APY = "APY";
-    const string EARN_asset = "a";
-    const string EARN_quantity = "q";
-    const string EARN_timestamp = "t";
+    const string EARN_ASSET = "a";
+    const string EARN_QUANTITY = "q";
+    const string EARN_TIMESTAMP = "t";
 
 
     // mainnet

@@ -3071,13 +3071,15 @@ void clashdomewld::earnstake(
     uint64_t curr_ctr = earntitr->counter;
     json new_deposit;
     
-    new_deposit[EARN_ID] = curr_ctr;
-    new_deposit[EARN_asset] = asset_name;
+    new_deposit[EARN_ASSET] = asset_name;
     new_deposit[EARN_APY] = APY_to_Percent[type];
-    new_deposit[EARN_quantity] = amount;
-    new_deposit[EARN_timestamp] = timestamp_import > 0 ? timestamp_import : timestamp;
+    new_deposit[EARN_QUANTITY] = amount;
+    new_deposit[EARN_TIMESTAMP] = timestamp_import > 0 ? timestamp_import : timestamp;
     
     earn_data[to_string(curr_ctr)] = new_deposit;
+
+
+
 
     string earn_data_str = earn_data.dump();
 
@@ -3110,10 +3112,10 @@ void clashdomewld::earnunstake(name account , uint64_t id){
     check(earn_data.find(to_string(id)) != earn_data.end(),"You don't have a deposit associatied with this id");
     json deposit = earn_data[to_string(id)];
     float deposit_APY = deposit[EARN_APY];
-    string deposit_asset = deposit[EARN_asset];
-    float deposit_qty = deposit[EARN_quantity];
+    string deposit_asset = deposit[EARN_ASSET];
+    float deposit_qty = deposit[EARN_QUANTITY];
     deposit_qty  = 10000.0 * deposit_qty;
-    float deposit_time = deposit[EARN_timestamp];
+    float deposit_time = deposit[EARN_TIMESTAMP];
 
     symbol asset_symbol = symbol(sc_to_name[deposit_asset], 4);
 
