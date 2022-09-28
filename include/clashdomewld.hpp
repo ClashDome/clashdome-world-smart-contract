@@ -242,9 +242,10 @@ public:
 
     ACTION earnunstake(
         name account,
-        string asset_name,
-        uint64_t type
+        uint64_t id
     );
+
+    ACTION transferearn();
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
@@ -739,7 +740,21 @@ private:
 
     typedef multi_index<name("earnstats"), earnstats_s> earnstats_t;
 
-    earnstats_t earnstats = earnstats_t(get_self(), get_self().value); 
+    earnstats_t earnstats = earnstats_t(get_self(), get_self().value);
+
+    TABLE earn_s{
+        
+        name account;
+        uint64_t counter;
+        string earn_data;
+        
+        uint64_t primary_key() const { return account.value; }
+
+    };
+
+    typedef multi_index<name("earn"), earn_s> earn_t;
+
+    earn_t earn = earn_t(get_self(), get_self().value); 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -761,11 +776,12 @@ private:
     void blockAccount(name account, name fraccount);
     bool checkFriend(name account, name fraccount);
     bool checkBlock(name account, name fraccount);
-    void earnstake( name acount, asset staking, uint64_t type); // stake tokens functons
+    void earnstake( name acount, asset staking, uint64_t type, uint64_t timestamp_import ); // stake tokens functons
+
     symbol tokenConversion(symbol s1);
     uint32_t epochToDay(time_t time);
     float getEarnReturns(float stakedAmount, uint64_t stakingTime, int APY, symbol token);
-    
+    void earnstatsfn(asset amount, bool type);
 
     // CONSTANTS
 
@@ -780,6 +796,14 @@ private:
     const string CITIZEN_SCHEMA_NAME = "citizen";
     const string HALLS_SCHEMA_NAME = "poolhalls";
     const string PACKS_SCHEMA_NAME = "packs";
+
+    //earn constants
+    const int earnStats_key = 0;
+    const string EARN_APY = "APY";
+    const string EARN_ASSET = "a";
+    const string EARN_QUANTITY = "q";
+    const string EARN_TIMESTAMP = "t";
+
 
     // mainnet
     const uint32_t PACKS_TEMPLATE_ID = 373360;
