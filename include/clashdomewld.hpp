@@ -245,8 +245,6 @@ public:
         uint64_t id
     );
 
-    ACTION transferearn();
-
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
         name to,
@@ -712,20 +710,6 @@ private:
     frequests_t;
 
     frequests_t frequests = frequests_t(get_self(), get_self().value); 
-
-    //earn 
-    TABLE earnTable_s{
-
-        name account;
-        vector<string> earn_staked;
-        
-        uint64_t primary_key() const { return account.value; }
-
-    };
-
-    typedef multi_index<name("earntable"), earnTable_s> earnTable_t;
-
-    earnTable_t earntable = earnTable_t(get_self(), get_self().value); 
 
     //earn
 
