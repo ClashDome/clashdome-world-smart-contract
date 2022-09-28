@@ -3214,15 +3214,13 @@ void clashdomewld::earnstatsfn(asset amount, bool type){
             new_a.staked_jigo = prev_day_key->staked_jigo;
         });
     }
-    // int mult = 1;
-    // if(type) mult =-1
 
     auto global_ptr = earnstats.find(earnStats_key);
 
     int mult = type ? 1.0 : -1.0;
     amount.amount *= mult ;
 
-    if(sy == LUDIO_SYMBOL){//este if es porque no me deja haer maps con symbols
+    if(sy == LUDIO_SYMBOL){
         earnstats.modify(earn_statspt, get_self(), [&](auto &mod_acc) {
             mod_acc.staked_ludio += amount;
         });
@@ -3299,9 +3297,7 @@ void clashdomewld::transferearn(){
             }
             
         }
-        
-        //itr = earntable.erase(itr);
-            
+                    
     }
     
 }
