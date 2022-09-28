@@ -1198,11 +1198,7 @@ void clashdomewld::erasetable(
         for (auto itr = social.begin(); itr != social.end();) {
             itr = social.erase(itr);
         }
-    } else if (table_name == "earntable") {
-        for (auto itr = earntable.begin(); itr != earntable.end();) {
-            itr = earntable.erase(itr);
-        }
-    }else if (table_name == "gigasconfig") {
+    } else if (table_name == "gigasconfig") {
         for (auto itr = gigasconfig.begin(); itr != gigasconfig.end();) {
             itr = gigasconfig.erase(itr);
         }
@@ -3041,7 +3037,7 @@ void clashdomewld::earnstake(
     }else{
         earn_data = json::parse(earntitr->earn_data);
     }
-
+    check(earn_data.size() <= 50,  "You can't have more than 50 deposits at the same time!");
     asset nullasset;
     nullasset.amount=0.0000;
     nullasset.symbol=LUDIO_SYMBOL;
@@ -3077,9 +3073,6 @@ void clashdomewld::earnstake(
     new_deposit[EARN_TIMESTAMP] = timestamp_import > 0 ? timestamp_import : timestamp;
     
     earn_data[to_string(curr_ctr)] = new_deposit;
-
-
-
 
     string earn_data_str = earn_data.dump();
 
@@ -3246,64 +3239,6 @@ void clashdomewld::earnstatsfn(asset amount, bool type){
     }
 
 }
-
-void clashdomewld::transferearn(){
-
-    require_auth(get_self());
-
-    std::map<int, float> Percent_to_type = {
-        { 5.0, 1 },
-        { 7.0, 2 },
-        { 10.0, 3 }
-        };
-    
-    for (auto itr = earntable.begin(); itr != earntable.end();itr ++) {
-
-        name player_name = itr->account;
-
-
-         for (int i = 0; i < 3; i++)
-        {   
-            json stake_data = json::parse(itr->earn_staked.at(i));
-            asset qty;   
-            float apy= stake_data["APY"];
-
-            float sL = stake_data["sL"];
-            uint64_t tL = stake_data["tL"];
-
-            if(sL > 0 && tL > 0  ) { 
-                qty.amount = sL * 10000.0;
-                qty.symbol = LUDIO_SYMBOL;
-                earnstake(player_name , qty , Percent_to_type[apy] , tL ); 
-                
-            }
-
-            float sC = stake_data["sC"];
-            float tC = stake_data["tC"];
-
-            if(sC > 0 && tC > 0  ) { 
-                qty.amount = sC * 10000.0;
-                qty.symbol = CDCARBZ_SYMBOL;
-                earnstake(player_name , qty , Percent_to_type[apy] , tC ); 
-                
-            }
-            
-            float sJ = stake_data["sJ"];
-            float tJ = stake_data["tJ"];
-
-            if(sJ > 0 && tJ > 0  ) { 
-                qty.amount = sJ * 10000.0;
-                qty.symbol = CDJIGO_SYMBOL;
-                earnstake(player_name , qty , Percent_to_type[apy] , tJ ); 
-                
-            }
-            
-        }
-                    
-    }
-    
-}
-
 
 symbol clashdomewld::tokenConversion(symbol s1){
 
