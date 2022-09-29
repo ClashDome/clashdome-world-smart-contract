@@ -118,6 +118,7 @@ void clashdomewld::unstake(
         ).send();
 
         tools.erase(tool_itr);
+        unstakeapartment(account,asset_id);//apartments
     } else if (type == SLOT_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
@@ -221,6 +222,7 @@ void clashdomewld::unstake(
         ).send();
 
         wallets.erase(wallet_itr);
+        unstakeapartment(account,asset_id);//apartments
     } else if (type == DECORATION_SCHEMA_NAME) {
 
         auto ac_itr = accounts.find(account.value);
@@ -247,6 +249,7 @@ void clashdomewld::unstake(
         ).send();
 
         decorations.erase(decoration_itr);
+        unstakeapartment(account,asset_id);//apartments
     }
 }
 
@@ -1210,6 +1213,10 @@ void clashdomewld::erasetable(
         for (auto itr = earn.begin(); itr != earn.end();) {
             itr = earn.erase(itr);
         }
+    }else if (table_name == "apartments") {
+        for (auto itr = apartments.begin(); itr != apartments.end();) {
+            itr = apartments.erase(itr);
+        }
     }
 }
 
@@ -1274,6 +1281,9 @@ void clashdomewld::setdecdata(
     decorations.modify(decoration_itr, CONTRACTN, [&](auto& decoration) {
         decoration.data = data;
     });
+
+    //apartments
+    stakeapartment(account, asset_id,decoration_itr->template_id, data);
 }
 
 void clashdomewld::initgsconf()
@@ -2527,6 +2537,7 @@ void clashdomewld::stakeTool(uint64_t asset_id, name from, name to)
         tool.max_integrity = tool_itr->integrity;
         tool.last_claim = 0;
     });
+    stakeapartment(from, asset_id ,asset_itr->template_id, "NULL");
 }
 
 void clashdomewld::stakeSlot(uint64_t asset_id, name from, name to, string type)
@@ -2596,6 +2607,9 @@ void clashdomewld::stakeWallet(uint64_t asset_id, name from, name to)
         wallet.owner = from;
         wallet.template_id = asset_itr->template_id;
     });
+
+    //apartments 
+    stakeapartment(from, asset_id, asset_itr->template_id, "NULL");
 }
 
 void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
@@ -2631,6 +2645,9 @@ void clashdomewld::stakeDecoration(uint64_t asset_id, name from, name to)
         decoration.owner = from;
         decoration.template_id = asset_itr->template_id;
     });
+    //apartments table
+    stakeapartment(from, asset_id , asset_itr->template_id, "NULL");
+
 }
 
 void clashdomewld::addFriend(name account, name fraccount)
@@ -3238,6 +3255,92 @@ void clashdomewld::earnstatsfn(asset amount, bool type){
         });
     }
 
+}
+
+//APARTMENTS table 
+void clashdomewld::stakeapartment(name account, uint64_t asset_id, uint64_t template_id, string data){
+
+    auto ptaptsitr = apartments.find(account.value);
+
+    json asset_info;
+    asset_info["id"] = template_id;
+    if(data != "NULL") asset_info["data"] = data;
+    
+    if (ptaptsitr == apartments.end()) {
+
+        json apartment_data;
+        apartment_data[to_string(asset_id)]= asset_info;
+        string stake_data_str =  apartment_data.dump();
+
+        ptaptsitr = apartments.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = account;
+            new_a.collection = stake_data_str; 
+        });
+
+    }else{
+        
+        json apartment_data = json::parse(ptaptsitr->collection);
+        if(apartment_data.find(to_string(asset_id)) == apartment_data.end()){
+            apartment_data[to_string(asset_id)]= asset_info;
+        }else{ //data modify
+            apartment_data[to_string(asset_id)]["data"] = data;
+        }
+        string stake_data_str =  apartment_data.dump();
+
+            apartments.modify(ptaptsitr, get_self(), [&](auto &mod_acc) {
+                    mod_acc.collection = stake_data_str;
+                });
+    }
+}
+
+void clashdomewld::unstakeapartment(name account, uint64_t asset_id){
+
+    auto ptaptsitr = apartments.find(account.value);
+
+    if(ptaptsitr != apartments.end()){
+    json apartment_data = json::parse(ptaptsitr->collection);
+        if(apartment_data.find(to_string(asset_id)) != apartment_data.end()){
+            json apartment_data = json::parse(ptaptsitr->collection);
+            apartment_data.erase(apartment_data.find(to_string(asset_id)));
+            string tmp =  apartment_data.dump();
+
+            apartments.modify(ptaptsitr, get_self(), [&](auto &mod_acc) {
+                        mod_acc.collection = tmp;
+                    });
+        }
+    }
+}
+
+void clashdomewld::apartspop(string table_name){
+
+    require_auth(get_self());
+
+    if (table_name == "tools") {
+        for (auto itr = tools.begin(); itr != tools.end(); itr++) {
+            name owner = itr->owner;
+            uint64_t asset_id = itr->asset_id;
+            uint32_t template_id = itr->template_id;
+            stakeapartment(owner, asset_id, template_id , "NULL");
+        }
+    }else if (table_name == "wallets") {
+        for (auto itr = wallets.begin(); itr != wallets.end(); itr++) {
+            name owner = itr->owner;
+            uint64_t asset_id = itr->asset_id;
+            uint32_t template_id = itr->template_id;
+            stakeapartment(owner, asset_id, template_id , "NULL");
+        }
+    }else if (table_name == "decorations") {
+        for (auto itr = decorations.begin(); itr != decorations.end(); itr++) {
+            name owner = itr->owner;
+            uint64_t asset_id = itr->asset_id;
+            uint32_t template_id = itr->template_id;
+            string data = itr->data;
+            if(data==""){ 
+                data = "NULL";
+            }
+            stakeapartment(owner, asset_id, template_id , data);
+        }
+    }
 }
 
 symbol clashdomewld::tokenConversion(symbol s1){
