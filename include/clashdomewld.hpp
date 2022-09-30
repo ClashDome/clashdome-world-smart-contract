@@ -245,7 +245,7 @@ public:
         uint64_t id
     );
 
-    ACTION apartspop(string table_name);
+    ACTION cpurentstats(name account, asset amount);
 
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(

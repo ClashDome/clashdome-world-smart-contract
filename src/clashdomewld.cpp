@@ -3019,6 +3019,28 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         }
     }
 } 
+
+void clashdomewld::cpurentstats(name account, asset amount){
+
+    name c1 = name("clashdomestk");
+    name c2 = name("clashomesk4");
+    name c3 = name("clashdomesk5");
+
+    if(account == c1){
+        require_auth(name(c1));
+    }else if(account == c2){
+        require_auth(c2);
+    }else if(account == c3){
+        require_auth(c3);
+    }else{
+        require_auth(get_self());
+    }
+    
+
+    updateDailyStats(amount , 0);
+
+}
+
 //earn program
 void clashdomewld::earnstake(
     name account,
@@ -3307,38 +3329,6 @@ void clashdomewld::unstakeapartment(name account, uint64_t asset_id){
             apartments.modify(ptaptsitr, get_self(), [&](auto &mod_acc) {
                         mod_acc.collection = tmp;
                     });
-        }
-    }
-}
-
-void clashdomewld::apartspop(string table_name){
-
-    require_auth(get_self());
-
-    if (table_name == "tools") {
-        for (auto itr = tools.begin(); itr != tools.end(); itr++) {
-            name owner = itr->owner;
-            uint64_t asset_id = itr->asset_id;
-            uint32_t template_id = itr->template_id;
-            stakeapartment(owner, asset_id, template_id , "NULL");
-        }
-    }else if (table_name == "wallets") {
-        for (auto itr = wallets.begin(); itr != wallets.end(); itr++) {
-            name owner = itr->owner;
-            uint64_t asset_id = itr->asset_id;
-            uint32_t template_id = itr->template_id;
-            stakeapartment(owner, asset_id, template_id , "NULL");
-        }
-    }else if (table_name == "decorations") {
-        for (auto itr = decorations.begin(); itr != decorations.end(); itr++) {
-            name owner = itr->owner;
-            uint64_t asset_id = itr->asset_id;
-            uint32_t template_id = itr->template_id;
-            string data = itr->data;
-            if(data==""){ 
-                data = "NULL";
-            }
-            stakeapartment(owner, asset_id, template_id , data);
         }
     }
 }
