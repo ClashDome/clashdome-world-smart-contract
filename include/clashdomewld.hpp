@@ -247,6 +247,7 @@ public:
 
     ACTION cpurentstats(name account, asset amount);
 
+    ACTION initvotapt(name account);
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
@@ -751,10 +752,24 @@ private:
         uint64_t primary_key() const { return account.value; }
 
     };
-
+    
     typedef multi_index<name("earn"), earn_s> earn_t;
 
     earn_t earn = earn_t(get_self(), get_self().value); 
+
+    TABLE missions_s{
+            
+            name account;
+            string missions;
+            
+            uint64_t primary_key() const { return account.value; }
+
+        };
+
+
+    typedef multi_index<name("missions"), missions_s> missions_t;
+
+    missions_t missions = missions_t(get_self(), get_self().value); 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -806,6 +821,14 @@ private:
     const string EARN_ASSET = "a";
     const string EARN_QUANTITY = "q";
     const string EARN_TIMESTAMP = "t";
+
+    //missions constants
+    const string APARTMENT_VOTING_MISSION = "avm";
+    const string APARTMENT_VOTING_START_TIME = "msst";
+    const string APARTMENT_VOTING_APARTMENTS_NAME= "mn";
+    const string APARTMENT_VOTING_APARTMENTS_SCORE= "ms";
+    const string APARTMENT_VOTING_APARTMENTS= "apts";
+    const string APARTMENT_SCORE= "as";
 
 
     // mainnet

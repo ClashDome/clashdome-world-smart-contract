@@ -1217,6 +1217,10 @@ void clashdomewld::erasetable(
         for (auto itr = apartments.begin(); itr != apartments.end();) {
             itr = apartments.erase(itr);
         }
+    }else if (table_name == "missions") {
+        for (auto itr = missions.begin(); itr != missions.end();) {
+            itr = missions.erase(itr);
+        }
     }
 }
 
@@ -3350,4 +3354,49 @@ uint32_t clashdomewld::epochToDay(time_t time){
     tm *tm_gmt = gmtime(&time);
 	uint32_t daytime=0;
 	return daytime=(tm_gmt->tm_year+1900)*10000+(tm_gmt->tm_mon+1)*100+(tm_gmt->tm_mday);
+}
+
+//apartment voting
+void clashdomewld::initvotapt(name account){
+
+    require_auth(account);
+    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+    auto missionsitr = missions.find(account.value);
+    json missions_data;
+    if(missionsitr == missions.end()){
+        missionsitr = missions.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = account;
+            new_a.missions = "";
+        });   
+    }else{
+        json missions_data = json::parse(missionsitr->missions);
+    }
+    if(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end()){
+    uint64_t st = missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME];
+    check(st + (3600*24*7) > timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
+    }
+    auto size = std::distance(apartments.cbegin(),apartments.cend());
+    auto rnd = (timestamp % size) ;
+    auto start_mission_itr= apartments.begin();
+    for (int i = 5; i < rnd; i++){ 
+        if(start_mission_itr == apartments.end()){break;}
+        //start_mission_itr++;
+    }
+
+    json apts;
+    for (int i = 0; i < 5; i++){
+
+        if(start_mission_itr == apartments.end()){break;}
+        apts[start_mission_itr->account.to_string()][APARTMENT_SCORE]= 0;
+        start_mission_itr++;
+
+    }
+    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_APARTMENTS] = apts; 
+    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp; 
+
+    string missions_data_str = missions_data.dump();
+
+    missions.modify(missionsitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.missions = missions_data_str;
+        });
 }
