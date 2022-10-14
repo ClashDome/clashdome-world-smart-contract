@@ -249,6 +249,10 @@ public:
 
     ACTION initvotapt(name account);
 
+    ACTION voteapts(name account, string scores);
+
+    ACTION voteconfig(asset voter_reward, asset voted_reward);
+
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
         name to,
@@ -769,7 +773,23 @@ private:
 
     typedef multi_index<name("missions"), missions_s> missions_t;
 
-    missions_t missions = missions_t(get_self(), get_self().value); 
+    missions_t missions = missions_t(get_self(), get_self().value);
+
+    TABLE votingconfig_s{
+            
+            uint64_t id;
+            asset voting_reward;
+            asset voted_reward;
+            
+            uint64_t primary_key() const { return id; }
+
+        };
+
+
+    typedef multi_index<name("votingconfig"), votingconfig_s> votingconfig_t;
+
+    votingconfig_t votingconfig = votingconfig_t(get_self(), get_self().value);
+ 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 
@@ -829,6 +849,11 @@ private:
     const string APARTMENT_VOTING_APARTMENTS_SCORE= "ms";
     const string APARTMENT_VOTING_APARTMENTS= "apts";
     const string APARTMENT_SCORE= "as";
+    const string MISSION_COMPLETE = "mc";
+
+    //apartment constants
+    const string APARTMENT_VOTES = "v";
+    const string APARTMENT__NO_VOTES = "n";
 
 
     // mainnet
