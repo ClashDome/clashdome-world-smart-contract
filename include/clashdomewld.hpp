@@ -245,6 +245,11 @@ public:
         uint64_t id
     );
 
+    ACTION drconfig(
+        asset dr,
+        uint32_t end_day
+    );
+
     ACTION cpurentstats(name account, asset amount);
 
 
@@ -755,6 +760,20 @@ private:
     typedef multi_index<name("earn"), earn_s> earn_t;
 
     earn_t earn = earn_t(get_self(), get_self().value); 
+
+    TABLE dailyrewards_s{
+        
+        uint64_t id;
+        asset reward_ludio;
+        uint32_t end_day;
+        
+        uint64_t primary_key() const { return id; }
+
+    };
+
+    typedef multi_index<name("dailyrewards"), dailyrewards_s> dailyrewards_t;
+
+    dailyrewards_t dailyrewards = dailyrewards_t(get_self(), get_self().value); 
 
     // AUXILIAR FUNCTIONS
     uint64_t finder(vector<asset> assets, symbol symbol); 

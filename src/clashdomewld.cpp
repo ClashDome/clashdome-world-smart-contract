@@ -2925,7 +2925,8 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     auto ptokenstatsitr = tokenstats.find(day);
 
     if (ptokenstatsitr == tokenstats.end()) {
-
+        
+        asset dr = dailyrewards.begin()->end_day >= day ? dailyrewards.begin()->reward_ludio : nullasset;
         tokenstats.erase(tokenstats.begin());                 //We delete the oldest row in the table
 
         ptokenstatsitr = tokenstats.emplace(CONTRACTN, [&](auto &new_d) {
@@ -2934,7 +2935,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
             new_d.consumed_carbz=nullasset;
             new_d.burned_carbz=nullasset;
             nullasset.symbol=CREDITS_SYMBOL;
-            new_d.mined_credits=nullasset;
+            new_d.mined_credits=dr;
             new_d.consumed_credits=nullasset;
             new_d.burned_credits=nullasset;
             nullasset.symbol=JIGOWATTS_SYMBOL;
@@ -3019,6 +3020,27 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
         }
     }
 } 
+
+void clashdomewld::drconfig(asset dr,uint32_t end_day){
+
+    require_auth(get_self());
+    
+    if(dailyrewards.begin() == dailyrewards.end()){
+
+        dailyrewards.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.id = 0;
+            new_a.reward_ludio = dr;
+            new_a.end_day = end_day;
+
+        });
+    }
+
+    dailyrewards.modify(dailyrewards.begin(), get_self(), [&](auto &mod_acc) {
+            mod_acc.id = 0;
+            mod_acc.reward_ludio = dr;
+            mod_acc.end_day = end_day;
+        });
+}
 
 void clashdomewld::cpurentstats(name account, asset amount){
 
