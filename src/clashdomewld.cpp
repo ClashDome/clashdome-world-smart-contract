@@ -3023,7 +3023,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
 void clashdomewld::cpurentstats(name account, asset amount){
 
     name c1 = name("clashdomestk");
-    name c2 = name("clashomesk4");
+    name c2 = name("clashdomesk4");
     name c3 = name("clashdomesk5");
 
     if(account == c1){
