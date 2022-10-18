@@ -473,8 +473,8 @@ void clashdomewld::claimtrial(
 ) {
 
     // TODO: cambiar esto al tener el programa de afiliados
-    require_auth(get_self());
-    // require_auth(account);
+    // require_auth(get_self());
+    require_auth(account);
 
     auto af_itr = affiliates.find(affiliate.value);
     check(af_itr != affiliates.end(), "Affiliated " + affiliate.to_string() + " doesn't exist!");
