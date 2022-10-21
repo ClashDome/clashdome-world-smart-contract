@@ -245,6 +245,10 @@ public:
         uint64_t id
     );
 
+    ACTION disablenot(
+        name account
+    );
+
     ACTION cpurentstats(name account, asset amount);
 
     ACTION initvotapt(name account);
@@ -850,6 +854,7 @@ private:
     const string APARTMENT_VOTING_APARTMENTS= "apts";
     const string APARTMENT_SCORE= "as";
     const string MISSION_COMPLETE = "mc";
+    const string MISSION_NOFITICATION_STATE = "ns";
 
     //apartment constants
     const string APARTMENT_VOTES = "v";
