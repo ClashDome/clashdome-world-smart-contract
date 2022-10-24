@@ -3567,7 +3567,6 @@ void clashdomewld::disablenot(name account ){
 
     require_auth(account);
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
-    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp; 
 
     auto missionsitr = missions.find(account.value);
     json missions_data;
@@ -3580,6 +3579,8 @@ void clashdomewld::disablenot(name account ){
     missions_data = json::parse(missionsitr->missions);
     json voting_mission = missions_data[APARTMENT_VOTING_MISSION];
     voting_mission[MISSION_NOFITICATION_STATE] = "false";
+    voting_mission[APARTMENT_VOTING_START_TIME] = timestamp; 
+
     missions_data[APARTMENT_VOTING_MISSION] =voting_mission;
     string missions_data_str = missions_data.dump();
 
