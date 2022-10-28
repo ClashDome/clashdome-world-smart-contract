@@ -3360,6 +3360,12 @@ uint32_t clashdomewld::epochToDay(time_t time){
 void clashdomewld::initvotapt(name account){
 
     require_auth(account);
+    auto ac_itr = accounts.find(from.value);
+    check(ac_itr != accounts.end(), "Stake a citizen first!!");
+
+    auto citizen_itr = citiz.find(from.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!"); 
+    
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
     auto missionsitr = missions.find(account.value);
     json missions_data;
@@ -3374,27 +3380,28 @@ void clashdomewld::initvotapt(name account){
     }
     if(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end()){
     
-    uint64_t st = missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME];
-    check(st + (3600*24*7) < timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
+        uint64_t st = missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME];
+        check(st + (3600*24*7) < timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
     }
-    auto size = std::distance(citiz.cbegin(),citiz.cend());
+    auto size = std::distance(apartments.cbegin(),apartments.cend());
     auto rnd = (timestamp % size) ;
-    auto start_mission_itr= citiz.begin();
+    auto start_mission_itr= apartments.begin();
     for (int i = 5; i < rnd; i++){
-        if(start_mission_itr == citiz.end()){break;}
-        if(size >5)start_mission_itr++;
+        if(start_mission_itr == apartments.end()){break;}
+        start_mission_itr++;
     }
 
     json apts;
     for (int i = 0; i < 5; i++){
 
-        if(start_mission_itr == citiz.end()){continue;}
+        if(start_mission_itr == apartments.end()){continue;}
         apts[start_mission_itr->account.to_string()][APARTMENT_SCORE]= 0;
         start_mission_itr++;
     }
     missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_APARTMENTS] = apts; 
-    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp; 
-
+    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp;
+    missions_data[APARTMENT_VOTING_MISSION][MISSION_COMPLETE] = "false"; 
+    
     string missions_data_str = missions_data.dump();
 
     missions.modify(missionsitr, get_self(), [&](auto &mod_acc) {
