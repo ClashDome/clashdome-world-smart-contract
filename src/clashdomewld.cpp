@@ -932,6 +932,20 @@ void clashdomewld::setcraft(
     });
 }
 
+void clashdomewld::setwallcraft(
+    uint32_t template_id,
+    vector<asset> craft
+) {
+    require_auth(get_self());
+
+    auto wallet_conf_itr = walletconfig.find(template_id);
+    check(wallet_conf_itr != walletconfig.end(), "Tool with template id " + to_string(template_id) + " doesn't exist!");
+
+    walletconfig.modify(wallet_conf_itr, CONTRACTN, [&](auto& config_row) {
+        config_row.craft = craft;
+    });
+}
+
 void clashdomewld::setslotcraft(
     uint32_t template_id,
     vector<asset> craft
@@ -2133,8 +2147,6 @@ void clashdomewld::receive_tokens_transfer(
             )
         ).send();
     } else if (memo.find("craft_wallet") != string::npos) {
-
-        check(0 == 1, "Craft wallet currently disabled.");
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);

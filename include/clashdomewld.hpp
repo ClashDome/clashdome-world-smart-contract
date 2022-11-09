@@ -128,7 +128,12 @@ public:
     ACTION setcraft(
         uint32_t template_id,
         vector<asset> craft
-    );ACTION setslotcraft(
+    );
+    ACTION setwallcraft(
+        uint32_t template_id,
+        vector<asset> craft
+    );
+    ACTION setslotcraft(
         uint32_t template_id,
         vector<asset> craft
     );
