@@ -3360,10 +3360,10 @@ uint32_t clashdomewld::epochToDay(time_t time){
 void clashdomewld::initvotapt(name account){
 
     require_auth(account);
-    auto ac_itr = accounts.find(from.value);
+    auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Stake a citizen first!!");
 
-    auto citizen_itr = citiz.find(from.value);
+    auto citizen_itr = citiz.find(account.value);
     check(citizen_itr != citiz.end(), "Stake a citizen first!"); 
     
     uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
@@ -3418,7 +3418,7 @@ void clashdomewld::voteapts(name account, string scores){
     check(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end(), "You don't have an open voting mission");
     json voting_mission = missions_data[APARTMENT_VOTING_MISSION];
     json apartments_to_vote = voting_mission[APARTMENT_VOTING_APARTMENTS];
-    check(voting_mission.find(MISSION_COMPLETE) == voting_mission.end(), "You've already submitted this weeks votes");
+    check(voting_mission[MISSION_COMPLETE] != "true", "You've already submitted this weeks votes");
     json votes = json::parse(scores);
     check(apartments_to_vote.size() == votes.size(), "Please vote every asigned player!");
 
