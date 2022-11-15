@@ -256,7 +256,16 @@ public:
         uint32_t end_day
     );
 
-    ACTION cpurentstats(name account, asset amount);
+    ACTION cpurentstats(
+        name account, 
+        asset amount
+    );
+
+    ACTION editapt(
+        name account,
+        vector<string> decoration_data
+    );
+
 
 
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
