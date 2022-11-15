@@ -3361,35 +3361,33 @@ void clashdomewld::unstakeapartment(name account, uint64_t asset_id){
 }
 
 //Apartment editing 
-void clashdomewld::editapt(name account,vector<string> decoration_data){
+void clashdomewld::editapt(name account, string decoration){
     require_auth(account);
-    for (int i = 0; i < decoration_data.size(); i++)
-    {   
-        string asset = decoration_data[i];
-        json decoration_data = json::parse(asset);
+      
+        json decoration_data = json::parse(decoration);
         check(1==0, "err" +decoration_data.dump());
         check(decoration_data.find("asset_id")!= decoration_data.end(), "Json parsing error, no asset_id");
-        if(decoration_data.find("data")!= decoration_data.end()){continue;}
-        uint64_t asset_id = decoration_data["asset_id"];
-        string data = decoration_data["data"];
+        // if(decoration_data.find("data")!= decoration_data.end()){continue;}
+        // uint64_t asset_id = decoration_data["asset_id"];
+        // string data = decoration_data["data"];
 
-        //decorations table 
-        auto decitr = decorations.find(asset_id);
-        check(decitr != decorations.end(), "You don't have the decoration with asset_id :" + to_string(asset_id) + " staked!");
-        decorations.modify(decitr, get_self(), [&](auto &mod_acc) {
-                        mod_acc.data = data;
-        });
-        //apartments table
-        auto aptitr = apartments.find(account.value);
-        if(aptitr == apartments.end()){continue;}
-        json collection = json::parse(aptitr->collection);
-        if(collection.find(to_string(asset_id)) == collection.end()){continue;}
-        collection[to_string(asset_id)]["data"] = data;
-        string collection_str = collection.dump();
-        apartments.modify(aptitr, get_self(), [&](auto &mod_acc) {
-                        mod_acc.collection = collection_str;
-        });
-    }
+        // //decorations table 
+        // auto decitr = decorations.find(asset_id);
+        // check(decitr != decorations.end(), "You don't have the decoration with asset_id :" + to_string(asset_id) + " staked!");
+        // decorations.modify(decitr, get_self(), [&](auto &mod_acc) {
+        //                 mod_acc.data = data;
+        // });
+        // //apartments table
+        // auto aptitr = apartments.find(account.value);
+        // if(aptitr == apartments.end()){continue;}
+        // json collection = json::parse(aptitr->collection);
+        // if(collection.find(to_string(asset_id)) == collection.end()){continue;}
+        // collection[to_string(asset_id)]["data"] = data;
+        // string collection_str = collection.dump();
+        // apartments.modify(aptitr, get_self(), [&](auto &mod_acc) {
+        //                 mod_acc.collection = collection_str;
+        // });
+    
 }
 
 symbol clashdomewld::tokenConversion(symbol s1){

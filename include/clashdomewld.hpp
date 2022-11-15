@@ -263,7 +263,7 @@ public:
 
     ACTION editapt(
         name account,
-        vector<string> decoration_data
+        string decoration_data
     );
 
 
