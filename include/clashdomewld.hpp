@@ -261,13 +261,6 @@ public:
         asset amount
     );
 
-    ACTION editapt(
-        name account,
-        string decoration_data
-    );
-
-
-
     [[eosio::on_notify("atomicassets::transfer")]] void receive_asset_transfer(
         name from,
         name to,
@@ -830,6 +823,7 @@ private:
     void stakeapartment(name account, uint64_t asset_id, uint64_t template_id, string data);
     void unstakeapartment(name account, uint64_t asset_id);
     void earnstatsfn(asset amount, bool type);
+    void editapt(name account, string decoration);
 
 
     // CONSTANTS
@@ -899,4 +893,6 @@ private:
     // FRIENDS
     const asset FRIENDS_REQUEST_FEE = asset(1000000, CDJIGO_SYMBOL);
 
+    //APARTMENT EDIT
+    const asset APARTMENT_EDIT_FEE = asset(100000, CDJIGO_SYMBOL);
 };

@@ -1932,7 +1932,18 @@ void clashdomewld::receive_token_transfer(
         acceptfreq(from, name(fraccount));
 
         updateDailyStats(quantity,0);
-    } else {
+    }else if (memo.find("edit_apartpent") != string::npos){
+
+        const size_t fb = memo.find(":");
+        string d1 = memo.substr(0, fb);
+        string apartment_info = memo.substr(fb + 1);
+
+        check(quantity.symbol == APARTMENT_EDIT_FEE.symbol, "Invalid token symbol.");
+        check(quantity.amount == APARTMENT_EDIT_FEE.amount, "Invalid token amount.");
+
+        editapt(from, apartment_info);
+
+    }else {
         check(memo == "transfer", "Invalid memo.");
     }
 }
@@ -3362,32 +3373,41 @@ void clashdomewld::unstakeapartment(name account, uint64_t asset_id){
 
 //Apartment editing 
 void clashdomewld::editapt(name account, string decoration){
-    require_auth(account);
-      
-        json decoration_data = json::parse(decoration);
-        check(1==0, "err" +decoration_data.dump());
-        check(decoration_data.find("asset_id")!= decoration_data.end(), "Json parsing error, no asset_id");
-        // if(decoration_data.find("data")!= decoration_data.end()){continue;}
-        // uint64_t asset_id = decoration_data["asset_id"];
-        // string data = decoration_data["data"];
 
-        // //decorations table 
-        // auto decitr = decorations.find(asset_id);
-        // check(decitr != decorations.end(), "You don't have the decoration with asset_id :" + to_string(asset_id) + " staked!");
-        // decorations.modify(decitr, get_self(), [&](auto &mod_acc) {
-        //                 mod_acc.data = data;
-        // });
-        // //apartments table
-        // auto aptitr = apartments.find(account.value);
-        // if(aptitr == apartments.end()){continue;}
-        // json collection = json::parse(aptitr->collection);
-        // if(collection.find(to_string(asset_id)) == collection.end()){continue;}
-        // collection[to_string(asset_id)]["data"] = data;
-        // string collection_str = collection.dump();
-        // apartments.modify(aptitr, get_self(), [&](auto &mod_acc) {
-        //                 mod_acc.collection = collection_str;
-        // });
-    
+    string d1=" ";
+    string d2 = decoration;
+
+    while(d1 != d2){
+        const size_t fb = d2.find(";");
+        d1 = d2.substr(0, fb);
+        d2 = d2.substr(fb + 1);
+        json decoration_data = json::parse(d1);
+
+        check(decoration_data.find("asset_id")!= decoration_data.end(), "Json parsing error, no asset_id");
+        uint64_t asset_id= decoration_data["asset_id"];
+
+        if(decoration_data.find("data")== decoration_data.end()){continue;}
+        
+        string data = decoration_data["data"];
+
+        //decorations table 
+        auto decitr = decorations.find(asset_id);
+        check(decitr != decorations.end(), "You don't have the decoration with asset_id :" + to_string(asset_id) + " staked!");
+        decorations.modify(decitr, get_self(), [&](auto &mod_acc) {
+                mod_acc.data = data;
+        });
+
+        //apartments table
+        auto aptitr = apartments.find(account.value);
+        if(aptitr == apartments.end()){continue;}
+        json collection = json::parse(aptitr->collection);
+        if(collection.find(to_string(asset_id)) == collection.end()){continue;}
+        collection[to_string(asset_id)]["data"] = data;
+        string collection_str = collection.dump();
+        apartments.modify(aptitr, get_self(), [&](auto &mod_acc) {
+                mod_acc.collection = collection_str;
+        });
+    }
 }
 
 symbol clashdomewld::tokenConversion(symbol s1){
