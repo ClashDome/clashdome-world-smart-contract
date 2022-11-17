@@ -1932,7 +1932,7 @@ void clashdomewld::receive_token_transfer(
         acceptfreq(from, name(fraccount));
 
         updateDailyStats(quantity,0);
-    }else if (memo.find("edit_apartpent") != string::npos){
+    }else if (memo.find("edit_apartment") != string::npos){
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
