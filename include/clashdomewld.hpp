@@ -894,5 +894,5 @@ private:
     const asset FRIENDS_REQUEST_FEE = asset(1000000, CDJIGO_SYMBOL);
 
     //APARTMENT EDIT
-    const asset APARTMENT_EDIT_FEE = asset(100000, CDJIGO_SYMBOL);
+    const asset APARTMENT_EDIT_FEE = asset(250000, CDJIGO_SYMBOL);
 };

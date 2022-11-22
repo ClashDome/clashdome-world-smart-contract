@@ -1932,7 +1932,7 @@ void clashdomewld::receive_token_transfer(
         acceptfreq(from, name(fraccount));
 
         updateDailyStats(quantity,0);
-    }else if (memo.find("edit_apartment") != string::npos){
+    }else if (memo.find("ed_ap") != string::npos){
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
@@ -3383,18 +3383,19 @@ void clashdomewld::editapt(name account, string decoration){
         d2 = d2.substr(fb + 1);
         json decoration_data = json::parse(d1);
 
-        check(decoration_data.find("asset_id")!= decoration_data.end(), "Json parsing error, no asset_id");
-        uint64_t asset_id= decoration_data["asset_id"];
+        check(decoration_data.find("id")!= decoration_data.end(), "Json parsing error, no asset_id");
+        uint64_t asset_id = decoration_data["id"];
 
-        if(decoration_data.find("data")== decoration_data.end()){continue;}
+        if(decoration_data.find("d")== decoration_data.end()){continue;}
         
-        string data = decoration_data["data"];
+        string data = decoration_data["d"];
 
         //decorations table 
         auto decitr = decorations.find(asset_id);
         check(decitr != decorations.end(), "You don't have the decoration with asset_id :" + to_string(asset_id) + " staked!");
+        check(decitr->owner == account, "You aren't the owner of this asset:" + to_string(asset_id));
         decorations.modify(decitr, get_self(), [&](auto &mod_acc) {
-                mod_acc.data = data;
+            mod_acc.data = data;
         });
 
         //apartments table
