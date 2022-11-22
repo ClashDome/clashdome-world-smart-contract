@@ -1861,6 +1861,12 @@ void clashdomewld::receive_token_transfer(
             acc.battery += battery;
         });
 
+        //update daily token stats
+        asset update_stats_asset;
+        update_stats_asset.amount=(battery * 10000) / config_itr->jigowatts_to_battery;
+        update_stats_asset.symbol=JIGOWATTS_SYMBOL;
+        updateDailyStats(update_stats_asset,0);
+
     } else if(memo == "repair_stamina") {
 
         auto config_itr = config.begin();
