@@ -1797,7 +1797,7 @@ void clashdomewld::receive_token_transfer(
             tool.integrity += integrity_necessary;
         });
 
-        //update daily token stats
+        // update daily token stats
         asset update_stats_asset;
         update_stats_asset.amount=(integrity_necessary * 10000) / config_itr->credits_to_integrity;
         update_stats_asset.symbol=CREDITS_SYMBOL;
@@ -1860,7 +1860,9 @@ void clashdomewld::receive_token_transfer(
         accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
             acc.battery += battery;
         });
+
     } else if(memo == "repair_stamina") {
+
         auto config_itr = config.begin();
 
         auto ac_itr = accounts.find(from.value);
@@ -1894,13 +1896,17 @@ void clashdomewld::receive_token_transfer(
         check(quantity.symbol == CDCARBZ_SYMBOL, "Invalid token symbol.");
         check(quantity.amount == SOCIAL_CARBZ_PAYMENT, "Invalid token amount.");
         parseSocialsMemo(from, memo);
-    }else if (memo.find("earn") != string::npos ){
+
+        updateDailyStats(quantity, 0);
+         
+    } else if (memo.find("earn") != string::npos ){
 
         const size_t fb = memo.find(":");
         //string d1 = memo.substr(0, fb); //"earn"
         string d2 = memo.substr(fb + 1); // type
 
         earnstake(from, quantity, stoi(d2), 0);
+
     } else if (memo.find("send_friend_request") != string::npos){
 
         const size_t fb = memo.find(":");
@@ -1918,7 +1924,7 @@ void clashdomewld::receive_token_transfer(
 
         sendfreq(from, name(fraccount));
 
-        updateDailyStats(quantity,0);
+        updateDailyStats(quantity, 0);
 
     } else if (memo.find("accept_friend_request") != string::npos){
 
@@ -1931,8 +1937,9 @@ void clashdomewld::receive_token_transfer(
 
         acceptfreq(from, name(fraccount));
 
-        updateDailyStats(quantity,0);
-    }else if (memo.find("ed_ap") != string::npos){
+        updateDailyStats(quantity, 0);
+
+    } else if (memo.find("ed_ap") != string::npos){
 
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
@@ -1943,11 +1950,12 @@ void clashdomewld::receive_token_transfer(
 
         editapt(from, apartment_info);
 
-    }else {
+        updateDailyStats(quantity, 0);
+
+    } else {
         check(memo == "transfer", "Invalid memo.");
     }
 }
-
 
 void clashdomewld::receive_tokens_transfer(
     name from,
@@ -1955,7 +1963,6 @@ void clashdomewld::receive_tokens_transfer(
     vector<asset> quantities,
     string memo
 ) {
-
 
     if (to != get_self()) {
         return;
@@ -2874,7 +2881,6 @@ void clashdomewld::checkEarlyAccess(name account, uint64_t early_access) {
 
 void clashdomewld::parseSocialsMemo(name account, string memo)
 {
-
     // memo: "social{cn:"pepe",co:"es",tw:"escrichee"}"
 
     // remove social from memo
@@ -2921,6 +2927,7 @@ void clashdomewld::parseSocialsMemo(name account, string memo)
 }
 
 void clashdomewld::updateDailyStats(asset assetVal,int type){
+
     float amount= assetVal.amount;
     symbol symbol= assetVal.symbol;
 
@@ -2987,52 +2994,52 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     }
     else if(symbol==CREDITS_SYMBOL){
         if (type==1){
-        //mined credits++
-        float currtoken=ptokenstatsitr->mined_credits.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.mined_credits.amount=currtoken;
-            });
+            //mined credits++
+            float currtoken=ptokenstatsitr->mined_credits.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.mined_credits.amount=currtoken;
+                });
         
         }else if(type==0){
-        //consumed credits++
-        float currtoken=ptokenstatsitr->consumed_credits.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.consumed_credits.amount=currtoken;
-            });
+            //consumed credits++
+            float currtoken=ptokenstatsitr->consumed_credits.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.consumed_credits.amount=currtoken;
+                });
         }else if(type==2){
-        //burned credits++
-        float currtoken=ptokenstatsitr->burned_credits.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.burned_credits.amount=currtoken;
-            });
+            //burned credits++
+            float currtoken=ptokenstatsitr->burned_credits.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.burned_credits.amount=currtoken;
+                });
         }
     }
     else if(symbol==JIGOWATTS_SYMBOL){
         if (type==1){
-        //minted jigo++
-        float currtoken=ptokenstatsitr->mined_jigo.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.mined_jigo.amount=currtoken;
-            });
+            //minted jigo++
+            float currtoken=ptokenstatsitr->mined_jigo.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.mined_jigo.amount=currtoken;
+                });
         
-        }else if(type==0){
-        //consumed jigo++
-        float currtoken=ptokenstatsitr->consumed_jigo.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.consumed_jigo.amount=currtoken;
-            });
-        }else if(type==2){
-        //burned jigo++
-        float currtoken=ptokenstatsitr->burned_jigo.amount;
-        currtoken += amount;
-        tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
-                mod_day.burned_jigo.amount=currtoken;
-            });
+        } else if(type==0){
+            //consumed jigo++
+            float currtoken=ptokenstatsitr->consumed_jigo.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.consumed_jigo.amount=currtoken;
+                });
+        } else if(type==2){
+            //burned jigo++
+            float currtoken=ptokenstatsitr->burned_jigo.amount;
+            currtoken += amount;
+            tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {
+                    mod_day.burned_jigo.amount=currtoken;
+                });
         }
     }
 } 
