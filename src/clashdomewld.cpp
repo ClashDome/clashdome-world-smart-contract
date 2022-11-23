@@ -1234,6 +1234,10 @@ void clashdomewld::erasetable(
         for (auto itr = apartments.begin(); itr != apartments.end();) {
             itr = apartments.erase(itr);
         }
+    }else if (table_name == "missions") {
+        for (auto itr = missions.begin(); itr != missions.end();) {
+            itr = missions.erase(itr);
+        }
     }
 }
 
@@ -3078,7 +3082,7 @@ void clashdomewld::cpurentstats(name account, asset amount){
     name c3 = name("clashdomesk5");
 
     if(account == c1){
-        require_auth(name(c1));
+        require_auth(c1);
     }else if(account == c2){
         require_auth(c2);
     }else if(account == c3){
@@ -3441,4 +3445,245 @@ uint32_t clashdomewld::epochToDay(time_t time){
     tm *tm_gmt = gmtime(&time);
 	uint32_t daytime=0;
 	return daytime=(tm_gmt->tm_year+1900)*10000+(tm_gmt->tm_mon+1)*100+(tm_gmt->tm_mday);
+}
+
+//apartment voting
+void clashdomewld::initvotapt(name account){
+
+    require_auth(account);
+    auto ac_itr = accounts.find(account.value);
+    check(ac_itr != accounts.end(), "Stake a citizen first!!");
+
+    auto citizen_itr = citiz.find(account.value);
+    check(citizen_itr != citiz.end(), "Stake a citizen first!"); 
+    
+    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+    auto missionsitr = missions.find(account.value);
+    json missions_data;
+    if(missionsitr == missions.end()){
+        missionsitr = missions.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = account;
+            new_a.missions = "{}";
+        });   
+    }else{
+        missions_data = json::parse(missionsitr->missions);
+        
+    }
+    if(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end()){
+    
+        uint64_t st = missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME];
+        check(st + (3600*24*7) < timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
+    }
+    auto size = std::distance(apartments.cbegin(),apartments.cend());
+    auto rnd = (timestamp % size) ;
+    auto start_mission_itr= apartments.begin();
+    for (int i = 5; i < rnd; i++){
+        if(start_mission_itr == apartments.end()){break;}
+        start_mission_itr++;
+    }
+
+    json apts;
+    for (int i = 0; i < 5; i++){
+
+        if(start_mission_itr == apartments.end()){continue;}
+        apts[start_mission_itr->account.to_string()][APARTMENT_SCORE]= 0;
+        start_mission_itr++;
+    }
+    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_APARTMENTS] = apts; 
+    missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp;
+    missions_data[APARTMENT_VOTING_MISSION][MISSION_COMPLETE] = "false"; 
+    
+    string missions_data_str = missions_data.dump();
+
+    missions.modify(missionsitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.missions = missions_data_str;
+        });
+}
+
+void clashdomewld::voteapts(name account, string scores){
+
+    require_auth(account);
+    auto missionsitr = missions.find(account.value);
+    check(missionsitr != missions.end(), "You don't have any missions pending");
+    json missions_data = json::parse(missionsitr->missions);
+    check(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end(), "You don't have an open voting mission");
+    json voting_mission = missions_data[APARTMENT_VOTING_MISSION];
+    json apartments_to_vote = voting_mission[APARTMENT_VOTING_APARTMENTS];
+    check(voting_mission[MISSION_COMPLETE] != "true", "You've already submitted this weeks votes");
+    json votes = json::parse(scores);
+    check(apartments_to_vote.size() == votes.size(), "Please vote every asigned player!");
+
+    for (const auto& item : votes.items())
+    {   
+        name visited = name(item.key());
+        int scored = item.value();
+        check(apartments_to_vote.find(item.key()) != apartments_to_vote.end(), "Vote submitted doesn't match asigned users!");
+        check(scored > 0 && scored <6, "Only scores 1-5 allowed!");
+        check(apartments_to_vote[item.key()][APARTMENT_SCORE] == 0 , "You cannot vote the same person more than once!");
+        apartments_to_vote[item.key()][APARTMENT_SCORE] = scored;
+        //cuenta votada 
+        auto voteditr = apartments.find(visited.value);
+        if(voteditr == apartments.end()) {
+
+            voteditr = apartments.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = visited;
+            new_a.collection = "{}"; 
+        });
+
+        }
+        json aptscore = json::parse(voteditr->collection);
+        json temp;
+        int score = 0;
+        int votes = 0;
+        if(aptscore.find(APARTMENT_SCORE) != aptscore.end()){
+            score = aptscore[APARTMENT_SCORE][APARTMENT_VOTES];
+            votes = aptscore[APARTMENT_SCORE][APARTMENT__NO_VOTES];
+        }
+        score = score + scored;
+        votes++;
+        aptscore[APARTMENT_SCORE][APARTMENT_VOTES] = score;
+        aptscore[APARTMENT_SCORE][APARTMENT__NO_VOTES]= votes;
+        string aptscore_str = aptscore.dump();
+       
+        apartments.modify(voteditr, get_self(), [&](auto &mod_acc) {
+            mod_acc.collection = aptscore_str;
+        });
+
+        auto ac_itr = accounts.find(visited.value);
+
+        if (ac_itr != accounts.end()) {
+
+            asset credits ;
+            
+            credits.amount = votingconfig.begin()->voted_reward.amount * (scored-1) ;// *  mult ; //recompensa para los votados min 5 ludio max 20 ludio;
+            credits.symbol = CREDITS_SYMBOL; 
+            json unclaimed_actions_json;
+            unclaimed_actions_json["voting"] = credits.amount;
+            vector<string> new_actions = ac_itr->unclaimed_actions;
+
+            new_actions.push_back(unclaimed_actions_json.dump());
+
+            auto config_itr = config.begin();
+
+            auto wallet_idx = wallets.get_index<name("byowner")>();
+            auto wallet_itr = wallet_idx.find(visited.value);
+
+            uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+            if (wallet_itr == wallet_idx.end()) {
+                if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+                    accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                        account_itr.unclaimed_credits.amount = max_amount;
+                        account_itr.unclaimed_actions = new_actions;
+                    });
+                } else {
+                    accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                        account_itr.unclaimed_credits.amount += credits.amount;
+                        account_itr.unclaimed_actions = new_actions;
+                    });
+                }
+            }else {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount += credits.amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            }
+        }
+    }
+
+    //cuenta que vota
+    voting_mission[MISSION_COMPLETE] = "true";
+    voting_mission[APARTMENT_VOTING_APARTMENTS] = apartments_to_vote;
+    missions_data[APARTMENT_VOTING_MISSION] = voting_mission;
+    string missions_data_str = missions_data.dump();
+
+    missions.modify(missionsitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.missions = missions_data_str;
+        });
+    auto ac_itr = accounts.find(account.value);
+
+        if (ac_itr != accounts.end()) {
+
+            asset credits ;
+            credits.amount = votingconfig.begin()->voting_reward.amount;
+            credits.symbol = CREDITS_SYMBOL;
+            json unclaimed_actions_json;
+            unclaimed_actions_json["voting"] = credits.amount;
+            vector<string> new_actions = ac_itr->unclaimed_actions;
+
+            new_actions.push_back(unclaimed_actions_json.dump());
+
+            auto config_itr = config.begin();
+
+            auto wallet_idx = wallets.get_index<name("byowner")>();
+            auto wallet_itr = wallet_idx.find(account.value);
+
+            uint64_t max_amount = config_itr->max_unclaimed_credits * 10000;
+
+            if (wallet_itr == wallet_idx.end()) {
+                if (ac_itr->unclaimed_credits.amount + credits.amount > max_amount) {
+                    accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                        account_itr.unclaimed_credits.amount = max_amount;
+                        account_itr.unclaimed_actions = new_actions;
+                    });
+                } else {
+                    accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                        account_itr.unclaimed_credits.amount += credits.amount;
+                        account_itr.unclaimed_actions = new_actions;
+                    });
+                }
+            }else {
+                accounts.modify(ac_itr, CONTRACTN, [&](auto& account_itr) {
+                    account_itr.unclaimed_credits.amount += credits.amount;
+                    account_itr.unclaimed_actions = new_actions;
+                });
+            }
+        }
+}
+void clashdomewld::voteconfig(asset voter_reward, asset voted_reward){
+
+    require_auth(get_self());
+
+    if(votingconfig.begin() == votingconfig.end()){
+
+        votingconfig.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.id = 0;
+            new_a.voting_reward = voter_reward;
+            new_a.voted_reward = voted_reward;
+        });   
+
+    }else{
+        auto votingconfigtptr = votingconfig.begin();
+        votingconfig.modify(votingconfig.begin(), CONTRACTN, [&](auto& account_itr) {
+                    account_itr.voting_reward = voter_reward;
+                    account_itr.voted_reward = voted_reward;
+                });
+    }
+}
+
+void clashdomewld::disablenot(name account ){
+
+    require_auth(account);
+    uint64_t timestamp = eosio::current_time_point().sec_since_epoch();
+
+    auto missionsitr = missions.find(account.value);
+    json missions_data;
+    if(missionsitr == missions.end()){
+        missionsitr = missions.emplace(CONTRACTN, [&](auto &new_a) {
+            new_a.account = account;
+            new_a.missions = "{}";
+        });   
+    }
+    missions_data = json::parse(missionsitr->missions);
+    json voting_mission = missions_data[APARTMENT_VOTING_MISSION];
+    voting_mission[MISSION_NOFITICATION_STATE] = "false";
+    voting_mission[APARTMENT_VOTING_START_TIME] = timestamp; 
+
+    missions_data[APARTMENT_VOTING_MISSION] =voting_mission;
+    string missions_data_str = missions_data.dump();
+
+    missions.modify(missionsitr, get_self(), [&](auto &mod_acc) {
+            mod_acc.missions = missions_data_str;
+        });
+
 }
