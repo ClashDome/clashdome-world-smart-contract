@@ -259,8 +259,6 @@ public:
         name account
     );
 
-    ACTION cpurentstats(name account, asset amount);
-
     ACTION cpurentstats(
         name account, 
         asset amount
