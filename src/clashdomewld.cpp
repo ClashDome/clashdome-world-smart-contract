@@ -1615,17 +1615,21 @@ void clashdomewld::acceptfreq(
 
     auto freq_idx = frequests.get_index<name("byto")>();
     auto freq_itr =  freq_idx.lower_bound(account.value);
+    bool freq_bool = false;
 
     while (freq_itr != freq_idx.end() && freq_itr->to == account) {
 
         if (freq_itr->from == from) {
             auto itr = frequests.find(freq_itr->id);
             frequests.erase(itr);
+            freq_bool = true;
             break;
         } else {
             freq_itr++;
         } 
     }
+
+    check(freq_bool, "No friend request found from " + from.to_string() + ".");
 
     addFriend(account, from);
     addFriend(from, account);
