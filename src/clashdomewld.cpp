@@ -2082,13 +2082,13 @@ void clashdomewld::receive_tokens_transfer(
 
     } else if(memo.find("craft_tool") != string::npos) {
 
-        check(0 == 1, "Craft tool currently disabled.");
-
         const size_t fb = memo.find(":");
         string d1 = memo.substr(0, fb);
         string d2 = memo.substr(fb + 1);
 
         uint32_t template_id = (uint32_t) stoull(d2);
+
+        check(template_id == 398063, "Craft tool currently disabled.");
 
         auto ac_itr = accounts.find(from.value);
         check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
