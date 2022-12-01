@@ -3521,7 +3521,7 @@ void clashdomewld::voteapts(name account, string scores){
     {   
         name visited = name(item.key());
         int scored = item.value();
-        check(apartments_to_vote.find(item.key()) != apartments_to_vote.end(), "Vote submitted doesn't match asigned users!");
+        check(apartments_to_vote.find(item.key()) != apartments_to_vote.end(), "Vote submitted doesn't match assigned users!");
         check(scored > 0 && scored <6, "Only scores 1-5 allowed!");
         check(apartments_to_vote[item.key()][APARTMENT_SCORE] == 0 , "You cannot vote the same person more than once!");
         apartments_to_vote[item.key()][APARTMENT_SCORE] = scored;
