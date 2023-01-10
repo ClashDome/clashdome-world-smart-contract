@@ -3476,7 +3476,7 @@ void clashdomewld::initvotapt(name account){
     if(missions_data.find(APARTMENT_VOTING_MISSION) != missions_data.end()){
     
         uint64_t st = missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME];
-        //check(st + (3600*24*7) < timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
+        check(st + (3600*24*7) < timestamp, "Mission isn't ready yet, wait "+ to_string(st + (3600*24*7) - timestamp) +"s");
     }
     auto size = std::distance(apartments.cbegin(),apartments.cend());
     auto rnd = (timestamp % size) ;
