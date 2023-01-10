@@ -3487,11 +3487,23 @@ void clashdomewld::initvotapt(name account){
     }
 
     json apts;
-    for (int i = 0; i < 5; i++){
+    int player_num = 5;
+    for (int i = 0; i < player_num; i++){
 
-        if(start_mission_itr == apartments.end()){continue;}
+        if(start_mission_itr == apartments.end()){break;}
+
+        //check for apartment validity 
+        auto decoration_idx = decorations.get_index<name("byowner")>();
+        auto decoration_itr =  decoration_idx.find(start_mission_itr->account.value); 
+        if(decoration_itr == decoration_idx.end() || start_mission_itr->account == account){
+            player_num ++;
+            start_mission_itr++;
+            continue;
+        }
+
         apts[start_mission_itr->account.to_string()][APARTMENT_SCORE]= 0;
         start_mission_itr++;
+
     }
     missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_APARTMENTS] = apts; 
     missions_data[APARTMENT_VOTING_MISSION][APARTMENT_VOTING_START_TIME] = timestamp;
