@@ -228,6 +228,10 @@ public:
         name account,
         name from
     );
+    ACTION cancelfreq(
+        name account,
+        name to
+    );
     ACTION rmfriend(
         name account,
         name fraccount
