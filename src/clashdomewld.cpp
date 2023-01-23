@@ -1218,11 +1218,7 @@ void clashdomewld::erasetable(
         for (auto itr = social.begin(); itr != social.end();) {
             itr = social.erase(itr);
         }
-    } else if (table_name == "gigasconfig") {
-        for (auto itr = gigasconfig.begin(); itr != gigasconfig.end();) {
-            itr = gigasconfig.erase(itr);
-        }
-    }else if (table_name == "earnstats") {
+    } else if (table_name == "earnstats") {
         for (auto itr = earnstats.begin(); itr != earnstats.end();) {
             itr = earnstats.erase(itr);
         }
