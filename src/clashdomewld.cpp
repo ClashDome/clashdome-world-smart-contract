@@ -1657,40 +1657,34 @@ void clashdomewld::declinefreq(
 
 void clashdomewld::cancelfreq(
     name account,
-    name to
+    name to,
+    uint64_t id
 ) {
     require_auth(account);
 
-    auto freq_idx = frequests.get_index<name("byto")>();
-    auto freq_itr = freq_idx.lower_bound(account.value);
-
-    while (freq_itr != freq_idx.end() && freq_itr->from == account) {
-
-        if (freq_itr->to == to) {
-            auto itr = frequests.find(freq_itr->id);
-            frequests.erase(itr);
-
-            // return the corresponding JIGOs
-            action(
-                    permission_level{get_self(), name("active")},
-                    name("clashdometkn"),
-                    name("transfer"),
-                    std::make_tuple(
-                        get_self(),
-                        account,
-                        FRIENDS_REQUEST_FEE,
-                        "Friendship request cancelled -" + to.to_string()
-                    )
-            ).send();
+    auto itr = frequests.find(id);
     
-            // update daily token stats
-            updateDailyStats(FRIENDS_REQUEST_FEE, 1);
+    // check(itr != frequests.end(), "No friend request found with this id");
+    // check(itr->from == account, "No friend request found from " + account.to_string() + ".");
+    // check(itr->to == to, "No friend request found to " + to.to_string() + ".");
 
-            break;
-        } else {
-            freq_itr++;
-        } 
-    }
+    frequests.erase(itr);
+
+    // return the corresponding JIGOs
+    action(
+            permission_level{get_self(), name("active")},
+            name("clashdometkn"),
+            name("transfer"),
+            std::make_tuple(
+                get_self(),
+                account,
+                FRIENDS_REQUEST_FEE,
+                "Friendship request cancelled -" + to.to_string()
+            )
+    ).send();
+
+    // update daily token stats
+    updateDailyStats(FRIENDS_REQUEST_FEE, 1);
 }
 
 void clashdomewld::rmfriend(
