@@ -647,20 +647,6 @@ private:
 
     triggers_t triggers = triggers_t(get_self(), get_self().value);
 
-    // gigaswap config
-    TABLE gigasconfig_s {
-
-        uint8_t key;   
-        vector<uint8_t> choices;
-        name account;
-        
-        uint64_t primary_key() const { return key; }
-    };
-
-    typedef multi_index<name("gigasconfig"), gigasconfig_s> gigasconfig_t;
-
-    gigasconfig_t gigasconfig = gigasconfig_t(get_self(), get_self().value);
-
     // gigaswap config  2
     TABLE gigasconfig2_s {
 
