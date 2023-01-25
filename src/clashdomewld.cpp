@@ -14,9 +14,7 @@ void clashdomewld::staketrial(
     atomicassets::assets_t player_assets = atomicassets::get_assets(account);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
 
-    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
-    check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
-    check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + SLOT_SCHEMA_NAME);
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR TEMPLATE
     check(asset_itr->template_id == TRIAL_TEMPLATE_ID, "NFT doesn't correspond to template id " + to_string(TRIAL_TEMPLATE_ID));
 
     atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
@@ -1655,6 +1653,35 @@ void clashdomewld::declinefreq(
     }
 }
 
+void clashdomewld::cancelfreq(
+    name account,
+    uint64_t id
+) {
+    require_auth(account);
+
+    auto itr = frequests.find(id);
+    
+    check(itr->from == account, "No friend request found from " + account.to_string() + ".");
+   
+    frequests.erase(itr);
+
+    // return the corresponding JIGOs
+    action(
+            permission_level{get_self(), name("active")},
+            name("clashdometkn"),
+            name("transfer"),
+            std::make_tuple(
+                get_self(),
+                account,
+                FRIENDS_REQUEST_FEE,
+                "Friendship request cancelled -" + to.to_string()
+            )
+    ).send();
+
+    // update daily token stats
+    updateDailyStats(FRIENDS_REQUEST_FEE, 1);
+}
+
 void clashdomewld::rmfriend(
     name account,
     name fraccount
@@ -3029,7 +3056,7 @@ void clashdomewld::updateDailyStats(asset assetVal,int type){
     }
     else if(symbol==JIGOWATTS_SYMBOL){
         if (type==1){
-            //minted jigo++
+            //mined jigo++
             float currtoken=ptokenstatsitr->mined_jigo.amount;
             currtoken += amount;
             tokenstats.modify(ptokenstatsitr, get_self(), [&](auto &mod_day) {

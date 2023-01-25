@@ -15,7 +15,7 @@ make
 
 While testing in testnet:
 cleos -u https://testnet.waxsweden.org set contract clashdomewld ./clashdomewld -p clashdomewld@active
-
+cleos -u https://tapiwax.3dkrender.com set contract clashdomewld ./clashdomewld -p clashdomewld@active
 cleos -u https://testnet.wax.eosdetroit.io set contract clashdomewld ./clashdomewld -p clashdomewld@active
 
 In production:
