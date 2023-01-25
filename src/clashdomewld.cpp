@@ -1663,8 +1663,6 @@ void clashdomewld::cancelfreq(
     
     check(itr->from == account, "No friend request found from " + account.to_string() + ".");
    
-    frequests.erase(itr);
-
     // return the corresponding JIGOs
     action(
             permission_level{get_self(), name("active")},
@@ -1674,12 +1672,14 @@ void clashdomewld::cancelfreq(
                 get_self(),
                 account,
                 FRIENDS_REQUEST_FEE,
-                "Friendship request cancelled -" + to.to_string()
+                "Friendship request cancelled -" + itr->to.to_string()
             )
     ).send();
 
     // update daily token stats
     updateDailyStats(FRIENDS_REQUEST_FEE, 1);
+
+    frequests.erase(itr);
 }
 
 void clashdomewld::rmfriend(
