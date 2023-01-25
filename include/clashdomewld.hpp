@@ -230,7 +230,6 @@ public:
     );
     ACTION cancelfreq(
         name account,
-        name to,
         uint64_t id 
     );
     ACTION rmfriend(

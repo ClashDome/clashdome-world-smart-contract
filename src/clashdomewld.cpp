@@ -14,9 +14,7 @@ void clashdomewld::staketrial(
     atomicassets::assets_t player_assets = atomicassets::get_assets(account);
     auto asset_itr = player_assets.require_find(asset_id, "No NFT with this ID exists");
 
-    // CHECK THAT THE ASSET CORRESPONDS TO OUR COLLECTION / SCHEMA AND TEMPLATE
-    // check(asset_itr->collection_name == name(COLLECTION_NAME), "NFT doesn't correspond to " + COLLECTION_NAME);
-    // check(asset_itr->schema_name == name(CITIZEN_SCHEMA_NAME), "NFT doesn't correspond to schema " + SLOT_SCHEMA_NAME);
+    // CHECK THAT THE ASSET CORRESPONDS TO OUR TEMPLATE
     check(asset_itr->template_id == TRIAL_TEMPLATE_ID, "NFT doesn't correspond to template id " + to_string(TRIAL_TEMPLATE_ID));
 
     atomicassets::schemas_t collection_schemas = atomicassets::get_schemas(name(COLLECTION_NAME));
@@ -1657,17 +1655,14 @@ void clashdomewld::declinefreq(
 
 void clashdomewld::cancelfreq(
     name account,
-    name to,
     uint64_t id
 ) {
     require_auth(account);
 
     auto itr = frequests.find(id);
     
-    // check(itr != frequests.end(), "No friend request found with this id");
-    // check(itr->from == account, "No friend request found from " + account.to_string() + ".");
-    // check(itr->to == to, "No friend request found to " + to.to_string() + ".");
-
+    check(itr->from == account, "No friend request found from " + account.to_string() + ".");
+   
     frequests.erase(itr);
 
     // return the corresponding JIGOs
