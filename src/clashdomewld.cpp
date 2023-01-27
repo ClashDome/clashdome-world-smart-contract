@@ -1672,7 +1672,7 @@ void clashdomewld::cancelfreq(
                 get_self(),
                 account,
                 FRIENDS_REQUEST_FEE,
-                "Friendship request cancelled -" + itr->to.to_string()
+                "Friendship request cancelled - " + itr->to.to_string()
             )
     ).send();
 
