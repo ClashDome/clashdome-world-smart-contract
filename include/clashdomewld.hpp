@@ -236,6 +236,14 @@ public:
         name account,
         name fraccount
     );
+    ACTION sendfreqcr(
+        name account,
+        name fraccount
+    );
+    ACTION acceptfreqcr(
+        name account,
+        name fraccount
+    );
     ACTION ubaccount(
         name account,
         name fraccount
@@ -937,4 +945,7 @@ private:
 
     //APARTMENT EDIT
     const asset APARTMENT_EDIT_FEE = asset(250000, CDJIGO_SYMBOL);
+
+    // SPECIAL CREATORS
+    const vector<name> CREATORS = {name("clashdometrn"), name("neri.dac")};
 };

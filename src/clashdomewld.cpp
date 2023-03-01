@@ -1663,21 +1663,24 @@ void clashdomewld::cancelfreq(
     
     check(itr->from == account, "No friend request found from " + account.to_string() + ".");
    
-    // return the corresponding JIGOs
-    action(
-            permission_level{get_self(), name("active")},
-            name("clashdometkn"),
-            name("transfer"),
-            std::make_tuple(
-                get_self(),
-                account,
-                FRIENDS_REQUEST_FEE,
-                "Friendship request cancelled - " + itr->to.to_string()
-            )
-    ).send();
+    if (find(CREATORS.begin(), CREATORS.end(), account) == CREATORS.end()) {
+        // return the corresponding JIGOs
+        action(
+                permission_level{get_self(), name("active")},
+                name("clashdometkn"),
+                name("transfer"),
+                std::make_tuple(
+                    get_self(),
+                    account,
+                    FRIENDS_REQUEST_FEE,
+                    "Friendship request cancelled - " + itr->to.to_string()
+                )
+        ).send();
 
-    // update daily token stats
-    updateDailyStats(FRIENDS_REQUEST_FEE, 1);
+        // update daily token stats
+        updateDailyStats(FRIENDS_REQUEST_FEE, 1);   
+    }
+    
 
     frequests.erase(itr);
 }
@@ -1711,6 +1714,28 @@ void clashdomewld::rmfriend(
             acc.data = social_data.dump();
         });
     }
+}
+
+void clashdomewld::sendfreqcr(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    check(find(CREATORS.begin(), CREATORS.end(), fraccount) != CREATORS.end(), "Invalid friend name.");
+
+    sendfreq(account, fraccount);
+}
+
+void clashdomewld::acceptfreqcr(
+    name account,
+    name fraccount
+) {
+    require_auth(account);
+
+    check(find(CREATORS.begin(), CREATORS.end(), account) != CREATORS.end(), "Invalid friend name.");
+
+    acceptfreq(account, fraccount);
 }
 
 void clashdomewld::ubaccount(
@@ -1805,8 +1830,8 @@ void clashdomewld::receive_token_transfer(
 
         uint64_t asset_id = stoull(d2);
 
-        auto ac_itr = accounts.find(from.value);
-        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+        // auto ac_itr = accounts.find(from.value);
+        // check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
 
         auto tool_itr = tools.find(asset_id);
         check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
@@ -1844,8 +1869,8 @@ void clashdomewld::receive_token_transfer(
 
         uint64_t asset_id = stoull(d2);
 
-        auto ac_itr = accounts.find(from.value);
-        check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
+        // auto ac_itr = accounts.find(from.value);
+        // check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
 
         auto tool_itr = tools.find(asset_id);
         check(tool_itr != tools.end(), "Tool with id " + to_string(asset_id) + " doesn't exist!");
