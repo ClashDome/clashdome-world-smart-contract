@@ -2111,7 +2111,7 @@ void clashdomewld::receive_tokens_transfer(
 
         uint32_t template_id = (uint32_t) stoull(d2);
 
-        check(template_id == 398063, "Craft tool currently disabled.");
+        check(template_id == 398063 || template_id == 352325, "Craft tool currently disabled.");
 
         auto ac_itr = accounts.find(from.value);
         check(ac_itr != accounts.end(), "Account with name " + from.to_string() + " doesn't exist!");
