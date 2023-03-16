@@ -3102,25 +3102,11 @@ void clashdomewld::drconfig(asset dr,uint32_t end_day){
         });
 }
 
-void clashdomewld::cpurentstats(name account, asset amount){
+void clashdomewld::updtstats(asset amount, uint8_t type){
 
-    name c1 = name("clashdomestk");
-    name c2 = name("clashdomesk4");
-    name c3 = name("clashdomesk5");
+    check(has_auth(name("clashdomestk")) || has_auth(name("clashdomesk4")) || has_auth(name("clashdomesk5")) || has_auth(name("clashdomepay")), "ClashDome Error - missing authority");
 
-    if(account == c1){
-        require_auth(c1);
-    }else if(account == c2){
-        require_auth(c2);
-    }else if(account == c3){
-        require_auth(c3);
-    }else{
-        require_auth(get_self());
-    }
-    
-
-    updateDailyStats(amount , 0);
-
+    updateDailyStats(amount , type);
 }
 
 //earn program

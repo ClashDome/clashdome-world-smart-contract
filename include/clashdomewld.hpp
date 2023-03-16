@@ -263,9 +263,9 @@ public:
         name account
     );
 
-    ACTION cpurentstats(
-        name account, 
-        asset amount
+    ACTION updtstats(
+        asset amount,
+        uint8_t type
     );
     ACTION initvotapt(name account);
 
