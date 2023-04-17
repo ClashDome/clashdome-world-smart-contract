@@ -589,14 +589,13 @@ void clashdomewld::addcredits(
     const string&  memo 
 ) {
 
-    require_auth(name("clashdomedll"));
+    check(has_auth(name("clashdomedll")) || has_auth(name("clashdomewld")), "ClashDome Error - missing authority");
 
     check(credits.symbol == CREDITS_SYMBOL, "Invalid token.");
 
     auto ac_itr = accounts.find(account.value);
 
     if (ac_itr != accounts.end()) {
-
 
         vector<string> new_actions = ac_itr->unclaimed_actions;
 
