@@ -428,23 +428,50 @@ void clashdomewld::claim(
         max_claimable_credits += wallet_conf_itr->extra_capacity * 10000;
     }
 
-    check(ac_itr->stamina >= wallet_stamina_consumed, "Insufficient stamina.");
-    check(ac_itr->battery >= wallet_battery_consumed, "Insufficient battery.");
+    // check(ac_itr->stamina >= wallet_stamina_consumed, "Insufficient stamina.");
+    // check(ac_itr->battery >= wallet_battery_consumed, "Insufficient battery.");
 
-    uint64_t claimable_credits = (unclaimed_credits > max_claimable_credits) ? max_claimable_credits : unclaimed_credits;
-    uint64_t remaining_credits = unclaimed_credits - claimable_credits;
+    // clalcular stamina y bateria maxima que se pueden consumir
+    float max_stats_claims = (float) ac_itr->stamina / wallet_stamina_consumed;
+    float max_battery_claims = (float) ac_itr->battery / wallet_battery_consumed;
+
+    float max_claims = (max_stats_claims < max_battery_claims) ? max_stats_claims : max_battery_claims;
+    uint64_t max_credits = max_claims * max_claimable_credits;
+
+    uint64_t credits_to_claim = (unclaimed_credits > max_credits) ? max_credits : unclaimed_credits;
+    uint64_t remaining_credits = unclaimed_credits - credits_to_claim;
+
+    // Calcular la estamina y bateria necesaria para reclamar los creditos
+    uint64_t stamina_consumed = (float)credits_to_claim / max_claimable_credits * wallet_stamina_consumed;
+    uint64_t battery_consumed = (float)credits_to_claim / max_claimable_credits * wallet_battery_consumed;
+
+    // calcular remaining_stamina y remaining_battery pero teniendo en cuenta de que no se puede consumir mas de lo que se tiene y pasaria a ser 0
+    uint64_t remaining_stamina = (ac_itr->stamina > stamina_consumed) ? ac_itr->stamina - stamina_consumed : 0;
+    uint64_t remaining_battery = (ac_itr->battery > battery_consumed) ? ac_itr->battery - battery_consumed : 0;
+
+    if (remaining_stamina <= 1) {
+        remaining_stamina = 0;
+    }
+
+    if (remaining_battery <= 1) {
+        remaining_battery = 0;
+    }
+
+    if (credits_to_claim > unclaimed_credits) {
+        remaining_credits = 0;
+    }
 
     accounts.modify(ac_itr, CONTRACTN, [&](auto& acc) {
         acc.unclaimed_credits.amount = remaining_credits;
         acc.unclaimed_actions = unclaimed_actions;
-        acc.stamina -= wallet_stamina_consumed;
-        acc.battery -= wallet_battery_consumed;
+        acc.stamina = remaining_stamina;
+        acc.battery = remaining_battery;
     });
 
     asset quantity;
     
     quantity.symbol = LUDIO_SYMBOL;
-    quantity.amount = claimable_credits;
+    quantity.amount = credits_to_claim;
 
     action(
         permission_level{get_self(), name("active")},
@@ -460,7 +487,7 @@ void clashdomewld::claim(
     
     //update daily token stats
     asset update_stats_asset;
-    update_stats_asset.amount=claimable_credits;
+    update_stats_asset.amount=credits_to_claim;
     update_stats_asset.symbol=CREDITS_SYMBOL;
     updateDailyStats(update_stats_asset,1);
 }
