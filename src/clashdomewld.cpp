@@ -3242,6 +3242,13 @@ void clashdomewld::earnstake(
 }
 
 void clashdomewld::earnunstake(name account , uint64_t id){
+
+    // PARA CONFISCAR TOKENS
+    // require_auth(get_self());
+    // auto earntitr = earn.find(account.value);
+    // check(earntitr !=earn.end(), "You dont have any depositos on the earn program !" );
+    // earn.erase(earntitr); 
+
     //APY to % map 
     std::map<int, float> APY_to_Percent = {
         { 1, 5.0 },
