@@ -657,7 +657,7 @@ void clashdomewld::addcredits(
         }
     } else {
         auto tr_itr = trials.find(account.value);
-        check(tr_itr != trials.end(), "Account with name " + account.to_string() + " doesn't exist!");
+        check(tr_itr != trials.end(), "Account " + account.to_string() + " doesn't have a citizen. Get one to receive your rewards!");
 
         vector<string> new_actions = ac_itr->unclaimed_actions;
 
