@@ -388,11 +388,9 @@ void clashdomewld::claimtool(
     
 }
 
-void clashdomewld::claim(
-    name account
-) {
+void clashdomewld::claim(name account) {
 
-    require_auth(account);
+    check(has_auth(account) || has_auth(get_self()), "Not authorised.");
 
     auto ac_itr = accounts.find(account.value);
     check(ac_itr != accounts.end(), "Account with name " + account.to_string() + " doesn't exist!");
