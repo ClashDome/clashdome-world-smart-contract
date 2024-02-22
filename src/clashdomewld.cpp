@@ -361,12 +361,12 @@ void clashdomewld::claimtool(
     asset quantity;
     quantity.amount = claimed;
 
+    check(tool_conf_itr->rarity == "Common" || tool_conf_itr->rarity == "Uncommon", "Tier 3 tools temporary disabled due to token overproduction");
+
     if (tool_conf_itr->rewards[0].symbol == CARBZ_SYMBOL) {
         quantity.symbol = CDCARBZ_SYMBOL;
-        check(tool_conf_itr->rarity == "Common" || tool_conf_itr->rarity == "Uncommon", "Tier 3 tools temporary disabled due to token overproduction");
     } else if (tool_conf_itr->rewards[0].symbol == JIGOWATTS_SYMBOL) {
         quantity.symbol = CDJIGO_SYMBOL;
-        check(tool_conf_itr->rarity == "Common", "Tier 2 and tier 3 tools temporary disabled due to token overproduction");
     }
 
     action(
